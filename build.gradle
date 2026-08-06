@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+group = 'com.vividflash'
+version = '1.0'
+
+def runeLiteVersion = '1.12.35'
+
+repositories {
+    mavenLocal()
+    maven {
+        url = 'https://repo.runelite.net'
+    }
+    mavenCentral()
+}
+
+dependencies {
+    compileOnly group: 'net.runelite', name: 'client', version: runeLiteVersion
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.release = 11
+}
