@@ -42,7 +42,7 @@ interface and examine text both.
 Several features reimplement the behavior of third-party RuneLite plugins.
 Credit to their authors; each plugin below is the behavioral reference for the
 matching feature. All four are published under the BSD 2-Clause License, and
-the full third-party license summary is in `LICENSE`.
+each author is credited by name in `LICENSE`.
 
 | Feature | Reference plugin | Author | Repository |
 | --- | --- | --- | --- |

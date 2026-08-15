@@ -1,6 +1,10 @@
 BSD 2-Clause License
 
 Copyright (c) 2026, vividflash
+Copyright (c) 2023, Claudio Dekker
+Copyright (c) 2022, Michael Gutman
+Copyright (c) 2026, Matthew Griffiths
+Copyright (c) 2025, MJHylkema
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -23,21 +27,3 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
-
-================================================================================
-THIRD-PARTY CREDITS
-================================================================================
-
-This plugin reimplements the behavior of the following third-party RuneLite
-plugins. Each is credited to its author, and each is published under the BSD
-2-Clause License.
-
-- nievive - Claudio Dekker (claudiodekker) - BSD 2-Clause
-  https://github.com/claudiodekker/runelite-nievive
-- konar-milestone-reminder - Michael Gutman (michael-gutman) - BSD 2-Clause
-  https://github.com/michael-gutman/konar-milestone-reminder
-- slayer-boosting - Matthew Griffiths (TheInsomnolent) - BSD 2-Clause
-  https://github.com/TheInsomnolent/slayer-boosting
-- slayer-task-sorter - MJHylkema - BSD 2-Clause
-  https://github.com/MJHylkema/slayer-task-sorter
