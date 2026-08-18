@@ -25,6 +25,7 @@
 package com.vividflash.slayer.features;
 
 import com.vividflash.slayer.SlayerConfig;
+import com.vividflash.slayer.UniqueOddsMode;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics2D;
@@ -32,14 +33,17 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import net.runelite.api.Client;
 import net.runelite.api.widgets.Widget;
+import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
+import net.runelite.client.util.Text;
 
 /**
- * Shows the estimated slayer-unique odds for each task Mortimer is offering,
- * while his choice interface is open, and marks the best pick.
+ * Shows the estimated odds of the configured superior drop for each task
+ * Mortimer is offering, while his choice interface is open, and marks the
+ * best pick.
  */
 @Singleton
 public class TaskChoiceOddsOverlay extends OverlayPanel
@@ -55,12 +59,16 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
         this.config = config;
         this.feature = feature;
         setPosition(OverlayPosition.TOP_LEFT);
+        // The panel is only ever drawn while Mortimer's interface is open, and
+        // that interface covers the viewport in fixed mode, so the default
+        // under-widgets layer would hide it for its whole visible life.
+        setLayer(OverlayLayer.ABOVE_WIDGETS);
     }
 
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!config.taskChoiceOdds() || feature.getChoices().isEmpty())
+        if (!config.taskChoiceOddsDisplay().showsPanel() || feature.getChoices().isEmpty())
         {
             return null;
         }
@@ -71,8 +79,10 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
             return null;
         }
 
+        UniqueOddsMode mode = config.taskChoiceOddsMode();
+
         panelComponent.getChildren().add(TitleComponent.builder()
-            .text("Unique odds per superior")
+            .text(Text.titleCase(mode) + " per superior")
             .build());
 
         int best = feature.getBestIndex();
@@ -80,18 +90,20 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
         {
             TaskChoiceOddsFeature.Choice choice = feature.getChoices().get(i);
 
+            double chance = choice.uniqueTableChance * mode.getPerSuperiorFactor();
+
             String odds;
-            if (Double.isNaN(choice.uniquePerSuperior))
+            if (Double.isNaN(chance))
             {
                 odds = "?";
             }
-            else if (choice.uniquePerSuperior <= 0)
+            else if (chance <= 0)
             {
                 odds = "-";
             }
             else
             {
-                odds = "1 in " + Math.round(1 / choice.uniquePerSuperior);
+                odds = "1 in " + Math.round(1 / chance);
             }
             if (choice.uniqueModifierPercent > 0)
             {

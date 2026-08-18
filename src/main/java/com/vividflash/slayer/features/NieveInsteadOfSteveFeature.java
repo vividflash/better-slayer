@@ -87,14 +87,55 @@ public class NieveInsteadOfSteveFeature implements Feature
 
     /**
      * Substring the untouched grave dedication carries. It also marks the
-     * popup as the grave rather than something else on the same group.
+     * popup as the grave rather than something else on the same group, so it
+     * is matched before anything is written.
      */
     private static final String GRAVE_DEDICATION_MARKER = "Nieve's honour";
-    private static final String GRAVE_DEDICATION_SWAP =
-        "Steve's memory, and in hope of Nieve's return";
-    private static final String GRAVE_TITLE = "In Memory of Steve, Who Left";
-    private static final String GRAVE_FIRST_LINE = "He said he was just filling in.";
-    private static final String GRAVE_SECOND_LINE = "Gnome-one will miss him.";
+    /**
+     * Nothing on this stone is dedicated to anyone, so the kill counts credit
+     * the creatures to the one who made them. The phrase matches the length of
+     * the one it replaces, which keeps the break the game puts in that line;
+     * the rows do not wrap on their own. Missing it leaves the line as the
+     * game wrote it, which is why the marker above is the shorter match.
+     */
+    private static final String GRAVE_DEDICATION_ORIGINAL = "in Nieve's honour";
+    private static final String GRAVE_DEDICATION_SWAP = "of Glough's making";
+
+    /**
+     * Every text line the grave popup is built from, top to bottom. The lines
+     * are matched by the wording the game puts on them rather than by
+     * position, so nothing is written to a line that holds something else.
+     */
+    private static final int[] GRAVE_LINES = {
+        InterfaceID.Messagescroll2.MS1,
+        InterfaceID.Messagescroll2.MS2,
+        InterfaceID.Messagescroll2.MS3,
+        InterfaceID.Messagescroll2.MS4,
+        InterfaceID.Messagescroll2.MS5,
+        InterfaceID.Messagescroll2.MS6,
+        InterfaceID.Messagescroll2.MS7,
+        InterfaceID.Messagescroll2.MS8,
+        InterfaceID.Messagescroll2.MS9,
+        InterfaceID.Messagescroll2.MS10,
+        InterfaceID.Messagescroll2.MS11,
+        InterfaceID.Messagescroll2.MS12,
+    };
+
+    /**
+     * With Nieve standing in the cave, the memorial belongs to the one the
+     * quest actually buried, on the stone the gnomes had already cut for her.
+     * Hers lists the honours she held; his lists the offices he held and what
+     * he nearly did with them, in the same rows. Each line replaces a line the
+     * game already writes, so the layout stays the game's own.
+     */
+    private static final String GRAVE_TITLE_ORIGINAL = "Nieve";
+    private static final String GRAVE_TITLE_REWRITE = "Glough";
+    private static final String GRAVE_MEMORIAL_MARKER = "In Loving memory of";
+    private static final String GRAVE_MEMORIAL_REWRITE = "This stone was cut for Nieve, but she got better.";
+    private static final String GRAVE_EPITAPH_FIRST_ORIGINAL = "Shield of the Gnomes";
+    private static final String GRAVE_EPITAPH_FIRST_REWRITE = "Chief Tree Guardian, Former Head of the Royal Guard";
+    private static final String GRAVE_EPITAPH_SECOND_ORIGINAL = "Master of Creatures";
+    private static final String GRAVE_EPITAPH_SECOND_REWRITE = "Nearly the End of Gnomekind itself";
 
     /**
      * One replacement line for any of Steve's identity/backstory dialogue
@@ -110,8 +151,17 @@ public class NieveInsteadOfSteveFeature implements Feature
     /** Her answer to it, which replaces the cousin/takeover backstory box. */
     private static final String DEMISE_LINE = "My demise was... greatly exaggerated.";
 
+    /**
+     * The player's sign-off from that branch. It commiserates over a Nieve who
+     * is standing right there, so it is answered to the rewritten branch
+     * instead. Steve's is the only script in the game that carries the line,
+     * so it needs no further qualification.
+     */
+    private static final String CONDOLENCE_LINE = "How sad for you.";
+    private static final String CONDOLENCE_REWRITE = "Good to have you back.";
+
     private static final String EXAMINE_ORIGINAL = "In memory of Nieve, she looks rich and dead.";
-    private static final String EXAMINE_REWRITE = "In memory of Steve, it looks freshly vacated.";
+    private static final String EXAMINE_REWRITE = "In memory of Glough, he looks misled and dead.";
     private static final String OFF_TASK_ORIGINAL = "Steve wants you to stick to your Slayer assignments.";
     private static final String OFF_TASK_REWRITE = "Nieve wants you to stick to your Slayer assignments.";
 
@@ -411,9 +461,17 @@ public class NieveInsteadOfSteveFeature implements Feature
 
         // The game echoes a picked chat option back as a player-spoken box.
         // Keep the reworded option's wording there too.
-        if (NEW_MASTER_OPTION.equals(plainText(text)))
+        String plain = plainText(text);
+        if (NEW_MASTER_OPTION.equals(plain))
         {
             text.setText(NEW_MASTER_OPTION_REWRITE);
+            return;
+        }
+
+        // The branch closes on condolences the rewritten one has no use for.
+        if (CONDOLENCE_LINE.equals(plain))
+        {
+            text.setText(CONDOLENCE_REWRITE);
             return;
         }
 
@@ -556,10 +614,12 @@ public class NieveInsteadOfSteveFeature implements Feature
     }
 
     /**
-     * Reworks the memorial on Steve's grave so it mourns Steve rather than
-     * Nieve. Widget group 221 is a generic scroll popup shared with unrelated
-     * content, so the dedication line has to look like the grave's before
-     * anything is written, and every line is written once or not at all.
+     * Reworks the memorial so it mourns Glough rather than the Nieve standing
+     * in the cave. Widget group 221 is a generic scroll popup shared with
+     * unrelated content, so the dedication line has to look like the grave's
+     * before anything is written. Each line is then matched by its own
+     * wording, which leaves the blank lines blank, leaves the kill counts
+     * alone and makes every write a no-op once it has happened.
      */
     private void rewriteGrave()
     {
@@ -568,26 +628,53 @@ public class NieveInsteadOfSteveFeature implements Feature
             return;
         }
 
-        Widget title = client.getWidget(InterfaceID.Messagescroll2.MS1);
-        Widget firstLine = client.getWidget(InterfaceID.Messagescroll2.MS3);
-        Widget secondLine = client.getWidget(InterfaceID.Messagescroll2.MS4);
-        Widget dedication = client.getWidget(InterfaceID.Messagescroll2.MS11);
-        if (title == null || firstLine == null || secondLine == null || dedication == null)
+        Widget[] lines = new Widget[GRAVE_LINES.length];
+        Widget dedication = null;
+        String dedicationText = null;
+        for (int i = 0; i < GRAVE_LINES.length; i++)
         {
+            lines[i] = client.getWidget(GRAVE_LINES[i]);
+            String text = lines[i] == null ? null : lines[i].getText();
+            if (text != null && text.contains(GRAVE_DEDICATION_MARKER))
+            {
+                dedication = lines[i];
+                dedicationText = text;
+            }
+        }
+
+        if (dedication == null)
+        {
+            // The grave is closed, or some other popup is borrowing the group.
             return;
         }
 
-        String dedicationText = dedication.getText();
-        if (dedicationText == null || !dedicationText.contains(GRAVE_DEDICATION_MARKER))
+        for (Widget line : lines)
         {
-            // Some other popup borrowing the same group.
-            return;
+            if (line == null || line == dedication)
+            {
+                continue;
+            }
+
+            String plain = plainText(line);
+            if (GRAVE_TITLE_ORIGINAL.equals(plain))
+            {
+                line.setText(GRAVE_TITLE_REWRITE);
+            }
+            else if (plain.startsWith(GRAVE_MEMORIAL_MARKER))
+            {
+                line.setText(GRAVE_MEMORIAL_REWRITE);
+            }
+            else if (GRAVE_EPITAPH_FIRST_ORIGINAL.equals(plain))
+            {
+                line.setText(GRAVE_EPITAPH_FIRST_REWRITE);
+            }
+            else if (GRAVE_EPITAPH_SECOND_ORIGINAL.equals(plain))
+            {
+                line.setText(GRAVE_EPITAPH_SECOND_REWRITE);
+            }
         }
 
-        title.setText(GRAVE_TITLE);
-        firstLine.setText(GRAVE_FIRST_LINE);
-        secondLine.setText(GRAVE_SECOND_LINE);
-        dedication.setText(dedicationText.replace(GRAVE_DEDICATION_MARKER, GRAVE_DEDICATION_SWAP));
+        dedication.setText(dedicationText.replace(GRAVE_DEDICATION_ORIGINAL, GRAVE_DEDICATION_SWAP));
     }
 
     private static String plainText(Widget widget)

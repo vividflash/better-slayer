@@ -63,15 +63,27 @@ public interface SlayerConfig extends Config
     String taskChoiceSection = "taskChoiceSection";
 
     @ConfigItem(
-        keyName = "taskChoiceOdds",
+        keyName = "taskChoiceOddsDisplay",
         name = "Show slayer-unique odds",
-        description = "While Mortimer offers tasks, show each option's chance of an imbued heart or eternal gem per superior, and mark the best pick.",
+        description = "While Mortimer offers tasks, show what each option is worth per superior. The panel lists every option, the highlight colors the best option's name in his list.",
         section = taskChoiceSection,
         position = 0
     )
-    default boolean taskChoiceOdds()
+    default TaskChoiceDisplay taskChoiceOddsDisplay()
     {
-        return true;
+        return TaskChoiceDisplay.BOTH;
+    }
+
+    @ConfigItem(
+        keyName = "taskChoiceOddsMode",
+        name = "Odds for",
+        description = "Which superior drop the odds are quoted for. A slayer unique roll counts every roll of either unique table, a unique item counts everything but its nothing outcome. The best pick is the same under all four.",
+        section = taskChoiceSection,
+        position = 1
+    )
+    default UniqueOddsMode taskChoiceOddsMode()
+    {
+        return UniqueOddsMode.HEART_OR_GEM;
     }
 
     @ConfigItem(
