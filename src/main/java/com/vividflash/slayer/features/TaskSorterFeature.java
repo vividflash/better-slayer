@@ -66,7 +66,7 @@ public class TaskSorterFeature implements Feature
     private static final Pattern ODDS_FRACTION_PATTERN = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)");
 
     /** Scrollable task list on the Slayer Rewards "Tasks" tab. */
-    private static final int REWARDS_TASKS_LIST = InterfaceID.SlayerRewards.TASKS_CONTENTS_SCROLLABLE;
+    private static final int REWARDS_TASKS_LIST = InterfaceID.SlayerRewards.TASKS_CONTENT_SCROLLABLE;
 
     /**
      * Under three rows there is no second gap to check the first one against,
