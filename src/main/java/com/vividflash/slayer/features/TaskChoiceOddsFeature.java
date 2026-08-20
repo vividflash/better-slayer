@@ -136,8 +136,8 @@ public class TaskChoiceOddsFeature implements Feature
 
     private final List<Choice> choices = new ArrayList<>();
 
-    /** Whether the best option's name has been colored for this opening. */
-    private boolean bestColored;
+    /** The best option's name widget, once found in the open interface. */
+    private Widget bestName;
 
     @Override
     public void startUp()
@@ -201,7 +201,7 @@ public class TaskChoiceOddsFeature implements Feature
     private void refresh()
     {
         choices.clear();
-        bestColored = false;
+        bestName = null;
         if (client.getGameState() != GameState.LOGGED_IN)
         {
             return;
@@ -321,9 +321,10 @@ public class TaskChoiceOddsFeature implements Feature
     /**
      * Colors the best option's name inside Mortimer's interface. The rows are
      * script-built, so the name is found by its text rather than by a fixed
-     * child index. The search runs once per opening, since the color holds
-     * until the interface builds its rows fresh the next time it opens, which
-     * is also why nothing is restored afterwards.
+     * child index. That search runs once per opening and the component is kept
+     * for the color to be reapplied from, since the interface's own handling of
+     * the row can write over it. Nothing is restored afterwards, since the rows
+     * are built fresh each time it opens.
      */
     @Subscribe
     public void onClientTick(ClientTick event)
@@ -331,26 +332,28 @@ public class TaskChoiceOddsFeature implements Feature
         Widget content = client.getWidget(TASK_CHOICE_CONTENT);
         if (content == null || content.isHidden())
         {
-            bestColored = false;
+            bestName = null;
             return;
         }
 
-        if (bestColored || !config.taskChoiceOddsDisplay().showsHighlight())
+        if (!config.taskChoiceOddsDisplay().showsHighlight())
         {
             return;
         }
 
-        int best = getBestIndex();
-        if (best == -1)
+        if (bestName == null)
         {
-            return;
+            int best = getBestIndex();
+            if (best == -1)
+            {
+                return;
+            }
+            bestName = findNameWidget(content, choices.get(best).name);
         }
 
-        Widget name = findNameWidget(content, choices.get(best).name);
-        if (name != null)
+        if (bestName != null && bestName.getTextColor() != BEST_NAME_COLOR)
         {
-            name.setTextColor(BEST_NAME_COLOR);
-            bestColored = true;
+            bestName.setTextColor(BEST_NAME_COLOR);
         }
     }
 
