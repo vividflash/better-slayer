@@ -29,11 +29,13 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.events.ClientTick;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetLoaded;
+import net.runelite.api.gameval.DBTableID;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
@@ -50,6 +52,7 @@ import net.runelite.client.util.Text;
  * slot carries one. Kill counts don't factor in, since the superior spawn
  * chance per kill is constant. Unresolvable slots show no value.
  */
+@Slf4j
 @Singleton
 public class TaskChoiceOddsFeature implements Feature
 {
@@ -79,19 +82,14 @@ public class TaskChoiceOddsFeature implements Feature
     /** Container on the task-choice interface where the entries are built. */
     static final int TASK_CHOICE_CONTENT = InterfaceID.SlayerTaskChoice.CONTENT;
 
-    /** Index of the per-master assignment row's task link. */
-    private static final int MASTER_TASK_TASK_COLUMN = 1;
     /** Indexes into the task row for stat requirements and display name. */
     private static final int TASK_STAT_REQ_COLUMN = 2;
     private static final int TASK_NAME_COLUMN = 10;
     /** Stat id of the Slayer skill inside the stat tuples. */
     private static final int SLAYER_STAT = 18;
 
-    /**
-     * Modifier-table row that boosts the unique-table roll by a percentage,
-     * despite its superior-spawn-chance name.
-     */
-    private static final int MODIFIER_UNIQUE_ROW = 7206;
+    /** Id of the modifier that boosts the unique-table roll by a percentage. */
+    private static final int MODIFIER_UNIQUE_ID = 4;
 
     /** Color the best option's name takes in Mortimer's interface. */
     private static final int BEST_NAME_COLOR = 0x00FF00;
@@ -207,23 +205,25 @@ public class TaskChoiceOddsFeature implements Feature
 
         for (int slot = 0; slot < CHOICE_TASK_VARBITS.length; slot++)
         {
-            int taskRow = client.getVarbitValue(CHOICE_TASK_VARBITS[slot]);
-            if (taskRow <= 0)
+            int taskId = client.getVarbitValue(CHOICE_TASK_VARBITS[slot]);
+            if (taskId <= 0)
             {
                 continue;
             }
-            choices.add(resolveChoice(slot, taskRow));
+            Choice choice = resolveChoice(slot, taskId);
+            log.debug("Task choice {}: task id {} is {}", slot + 1, taskId, choice.name);
+            choices.add(choice);
         }
     }
 
-    private Choice resolveChoice(int slot, int masterTaskRow)
+    private Choice resolveChoice(int slot, int taskId)
     {
         int modifierId = client.getVarbitValue(CHOICE_MODIFIER_ID_VARBITS[slot]);
         int modifierValue = client.getVarbitValue(CHOICE_MODIFIER_VALUE_VARBITS[slot]);
         boolean modifierNegative = client.getVarbitValue(CHOICE_MODIFIER_NEGATIVE_VARBITS[slot]) != 0;
-        int uniquePercent = modifierId == MODIFIER_UNIQUE_ROW && !modifierNegative ? modifierValue : 0;
+        int uniquePercent = modifierId == MODIFIER_UNIQUE_ID && !modifierNegative ? modifierValue : 0;
 
-        int taskRow = readTaskRow(masterTaskRow);
+        int taskRow = readTaskRow(taskId);
         String name = taskRow == UNREADABLE_ROW ? null : readTaskName(taskRow);
         if (name == null)
         {
@@ -236,16 +236,16 @@ public class TaskChoiceOddsFeature implements Feature
     }
 
     /**
-     * Row of the task itself, linked from the master's assignment row, or
-     * {@link #UNREADABLE_ROW}. Row numbers start at 1, so a zero coming back
-     * from the cache is no more of a row than a failed read is.
+     * Row of the task a slot names by id, or {@link #UNREADABLE_ROW}. The
+     * varbit carries the id the task table indexes, not a row of its own.
      */
-    private int readTaskRow(int masterTaskRow)
+    private int readTaskRow(int taskId)
     {
         try
         {
-            int row = (Integer) client.getDBTableField(masterTaskRow, MASTER_TASK_TASK_COLUMN, 0)[0];
-            return row > 0 ? row : UNREADABLE_ROW;
+            List<Integer> rows = client.getDBRowsByValue(
+                DBTableID.SlayerTask.ID, DBTableID.SlayerTask.COL_ID, 0, taskId);
+            return rows.isEmpty() ? UNREADABLE_ROW : rows.get(0);
         }
         catch (RuntimeException e)
         {
