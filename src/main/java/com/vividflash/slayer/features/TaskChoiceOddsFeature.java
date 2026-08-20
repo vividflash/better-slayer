@@ -136,6 +136,9 @@ public class TaskChoiceOddsFeature implements Feature
 
     private final List<Choice> choices = new ArrayList<>();
 
+    /** Whether the best option's name has been colored for this opening. */
+    private boolean bestColored;
+
     @Override
     public void startUp()
     {
@@ -198,6 +201,7 @@ public class TaskChoiceOddsFeature implements Feature
     private void refresh()
     {
         choices.clear();
+        bestColored = false;
         if (client.getGameState() != GameState.LOGGED_IN)
         {
             return;
@@ -317,19 +321,21 @@ public class TaskChoiceOddsFeature implements Feature
     /**
      * Colors the best option's name inside Mortimer's interface. The rows are
      * script-built, so the name is found by its text rather than by a fixed
-     * child index. Nothing is restored afterwards, since the interface builds
-     * its rows fresh each time it opens.
+     * child index. The search runs once per opening, since the color holds
+     * until the interface builds its rows fresh the next time it opens, which
+     * is also why nothing is restored afterwards.
      */
     @Subscribe
     public void onClientTick(ClientTick event)
     {
-        if (!config.taskChoiceOddsDisplay().showsHighlight())
+        Widget content = client.getWidget(TASK_CHOICE_CONTENT);
+        if (content == null || content.isHidden())
         {
+            bestColored = false;
             return;
         }
 
-        Widget content = client.getWidget(TASK_CHOICE_CONTENT);
-        if (content == null || content.isHidden())
+        if (bestColored || !config.taskChoiceOddsDisplay().showsHighlight())
         {
             return;
         }
@@ -341,9 +347,10 @@ public class TaskChoiceOddsFeature implements Feature
         }
 
         Widget name = findNameWidget(content, choices.get(best).name);
-        if (name != null && name.getTextColor() != BEST_NAME_COLOR)
+        if (name != null)
         {
             name.setTextColor(BEST_NAME_COLOR);
+            bestColored = true;
         }
     }
 
