@@ -47,7 +47,7 @@ import net.runelite.client.plugins.PluginDescriptor;
 
 @PluginDescriptor(
     name = "Better Slayer",
-    description = "Mortimer task-choice unique odds, per-task slayer master rules, slayer task list sorting, Nieve restored",
+    description = "Mortimer task odds, master rules, task sorting, Nieve",
     tags = {"slayer", "nieve", "mortimer", "task", "boost"}
 )
 public class SlayerPlugin extends Plugin
