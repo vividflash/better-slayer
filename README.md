@@ -63,20 +63,6 @@ entries and dialogue. Steve's backstory boxes and the chat option asking about
 the new master are reworded to fit her. With Nieve alive, the gravestone in the
 stronghold remembers Glough instead, interface and examine text both.
 
-## Attribution
-
-Several features reimplement the behavior of third-party RuneLite plugins.
-Credit to their authors; each plugin below is the behavioral reference for the
-matching feature. All four are published under the BSD 2-Clause License, and
-each author is credited by name in `LICENSE`.
-
-| Feature | Reference plugin | Author | Repository |
-| --- | --- | --- | --- |
-| Master Rules (milestone reminder) | konar-milestone-reminder | michael-gutman (Michael Gutman) | https://github.com/michael-gutman/konar-milestone-reminder |
-| Master Rules (streak/point math) | slayer-boosting | TheInsomnolent (Matthew Griffiths) | https://github.com/TheInsomnolent/slayer-boosting |
-| Task Sorter | slayer-task-sorter | MJHylkema | https://github.com/MJHylkema/slayer-task-sorter |
-| Nieve instead of Steve | nievive | claudiodekker (Claudio Dekker) | https://github.com/claudiodekker/runelite-nievive |
-
 ## License
 
 BSD 2-Clause. See [LICENSE](LICENSE).
