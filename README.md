@@ -62,7 +62,3 @@ Shows Nieve instead of Steve, covering her world model, name, chathead, menu
 entries and dialogue. Steve's backstory boxes and the chat option asking about
 the new master are reworded to fit her. With Nieve alive, the gravestone in the
 stronghold remembers Glough instead, interface and examine text both.
-
-## License
-
-BSD 2-Clause. See [LICENSE](LICENSE).
