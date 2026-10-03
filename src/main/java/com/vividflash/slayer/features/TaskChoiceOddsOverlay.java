@@ -36,14 +36,15 @@ import net.runelite.api.widgets.Widget;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
+import net.runelite.client.ui.overlay.components.ComponentConstants;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import net.runelite.client.util.Text;
 
 /**
  * Shows the estimated odds of the configured superior drop for each task
- * Mortimer is offering, while his choice interface is open, and marks the
- * best pick.
+ * Mortimer is offering and the time each is expected to take, while his
+ * choice interface is open, and marks the configured mode's pick.
  */
 @Singleton
 public class TaskChoiceOddsOverlay extends OverlayPanel
@@ -85,7 +86,8 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
             .text(Text.titleCase(mode) + " per superior")
             .build());
 
-        int best = feature.getBestIndex();
+        int best = feature.getPickIndex();
+        int width = ComponentConstants.STANDARD_WIDTH;
         for (int i = 0; i < feature.getChoices().size(); i++)
         {
             TaskChoiceOddsFeature.Choice choice = feature.getChoices().get(i);
@@ -110,6 +112,14 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
                 odds += " (+" + choice.uniqueModifierPercent + "%)";
             }
 
+            double hours = feature.estimatedHours(choice);
+            odds += Double.isNaN(hours) ? ", ? min" : ", " + Math.round(hours * 60) + " min";
+
+            // The line would wrap at the standard width, so the panel grows
+            // to its longest one.
+            width = Math.max(width, graphics.getFontMetrics().stringWidth(choice.name + "  " + odds)
+                + 2 * ComponentConstants.STANDARD_BORDER);
+
             panelComponent.getChildren().add(LineComponent.builder()
                 .left(choice.name)
                 .leftColor(i == best ? Color.GREEN : Color.WHITE)
@@ -118,6 +128,7 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
                 .build());
         }
 
+        panelComponent.setPreferredSize(new Dimension(width, 0));
         return super.render(graphics);
     }
 }

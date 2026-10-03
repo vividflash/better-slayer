@@ -30,6 +30,7 @@ import net.runelite.client.config.ConfigGroup;
 import net.runelite.client.config.ConfigItem;
 import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
+import net.runelite.client.config.Units;
 
 @ConfigGroup("vividflashslayer")
 public interface SlayerConfig extends Config
@@ -37,21 +38,21 @@ public interface SlayerConfig extends Config
     @ConfigSection(
         name = "Nieve instead of Steve",
         description = "Nieve restoration tweaks.",
-        position = 3
+        position = 4
     )
     String nieveSection = "nieveSection";
 
     @ConfigSection(
         name = "Master Rules",
         description = "Which slayer master to use for which task number, with milestone reminders and point projections.",
-        position = 1
+        position = 2
     )
     String masterRulesSection = "masterRulesSection";
 
     @ConfigSection(
         name = "Task Sorter",
         description = "Sorting for the slayer task list interface.",
-        position = 2
+        position = 3
     )
     String taskSorterSection = "taskSorterSection";
 
@@ -62,10 +63,18 @@ public interface SlayerConfig extends Config
     )
     String taskChoiceSection = "taskChoiceSection";
 
+    @ConfigSection(
+        name = "Task Choice speeds",
+        description = "Kill speeds the task choice pick is worked out from.",
+        position = 1,
+        closedByDefault = true
+    )
+    String taskSpeedSection = "taskSpeedSection";
+
     @ConfigItem(
         keyName = "taskChoiceOddsDisplay",
         name = "Show slayer-unique odds",
-        description = "While Mortimer offers tasks, show what each option is worth per superior. The panel lists every option, the highlight colors the best option's name in his list.",
+        description = "While Mortimer offers tasks, show what each option is worth per superior. The panel lists every option with its estimated time, the highlight colors the picked option's name in his list.",
         section = taskChoiceSection,
         position = 0
     )
@@ -84,6 +93,450 @@ public interface SlayerConfig extends Config
     default UniqueOddsMode taskChoiceOddsMode()
     {
         return UniqueOddsMode.HEART_OR_GEM;
+    }
+
+    @ConfigItem(
+        keyName = "taskChoicePickMode",
+        name = "Pick",
+        description = "Fastest: the shortest task. Fast + Best: the shortest, unless a boosted multicombat task is worth more per hour. Balanced: the most unique rolls per hour. Max chance: the best odds per superior. Auto: Fast + Best until 50 Mortimer tasks, Balanced after.",
+        section = taskChoiceSection,
+        position = 2
+    )
+    default TaskPickMode taskChoicePickMode()
+    {
+        return TaskPickMode.AUTO;
+    }
+
+    @ConfigItem(
+        keyName = "taskChoiceOverhead",
+        name = "Overhead per task",
+        description = "Time added to every task for travel, banking and getting the next one.",
+        section = taskSpeedSection,
+        position = 0
+    )
+    @Range(min = 0)
+    @Units(Units.MINUTES)
+    default int taskChoiceOverhead()
+    {
+        return 2;
+    }
+
+    @ConfigItem(
+        keyName = "kphCrawlingHands",
+        name = "Crawling hands",
+        description = "",
+        section = taskSpeedSection,
+        position = 1
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphCrawlingHands()
+    {
+        return 1500;
+    }
+
+    @ConfigItem(
+        keyName = "kphCaveCrawlers",
+        name = "Cave crawlers",
+        description = "",
+        section = taskSpeedSection,
+        position = 2
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphCaveCrawlers()
+    {
+        return 1300;
+    }
+
+    @ConfigItem(
+        keyName = "kphBanshees",
+        name = "Banshees",
+        description = "",
+        section = taskSpeedSection,
+        position = 3
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphBanshees()
+    {
+        return 1300;
+    }
+
+    @ConfigItem(
+        keyName = "kphRockslugs",
+        name = "Rockslugs",
+        description = "",
+        section = taskSpeedSection,
+        position = 4
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphRockslugs()
+    {
+        return 600;
+    }
+
+    @ConfigItem(
+        keyName = "kphCockatrice",
+        name = "Cockatrice",
+        description = "",
+        section = taskSpeedSection,
+        position = 5
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphCockatrice()
+    {
+        return 770;
+    }
+
+    @ConfigItem(
+        keyName = "kphPyrefiends",
+        name = "Pyrefiends",
+        description = "",
+        section = taskSpeedSection,
+        position = 6
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphPyrefiends()
+    {
+        return 630;
+    }
+
+    @ConfigItem(
+        keyName = "kphInfernalMages",
+        name = "Infernal mages",
+        description = "",
+        section = taskSpeedSection,
+        position = 7
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphInfernalMages()
+    {
+        return 475;
+    }
+
+    @ConfigItem(
+        keyName = "kphBasilisks",
+        name = "Basilisks",
+        description = "",
+        section = taskSpeedSection,
+        position = 8
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphBasilisks()
+    {
+        return 200;
+    }
+
+    @ConfigItem(
+        keyName = "kphBloodveld",
+        name = "Bloodveld",
+        description = "",
+        section = taskSpeedSection,
+        position = 9
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphBloodveld()
+    {
+        return 700;
+    }
+
+    @ConfigItem(
+        keyName = "kphGryphons",
+        name = "Gryphons",
+        description = "",
+        section = taskSpeedSection,
+        position = 10
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphGryphons()
+    {
+        return 455;
+    }
+
+    @ConfigItem(
+        keyName = "kphJellies",
+        name = "Jellies",
+        description = "",
+        section = taskSpeedSection,
+        position = 11
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphJellies()
+    {
+        return 400;
+    }
+
+    @ConfigItem(
+        keyName = "kphCustodianStalkers",
+        name = "Custodian stalkers",
+        description = "",
+        section = taskSpeedSection,
+        position = 12
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphCustodianStalkers()
+    {
+        return 400;
+    }
+
+    @ConfigItem(
+        keyName = "kphTuroth",
+        name = "Turoth",
+        description = "",
+        section = taskSpeedSection,
+        position = 13
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphTuroth()
+    {
+        return 210;
+    }
+
+    @ConfigItem(
+        keyName = "kphWarpedCreatures",
+        name = "Warped creatures",
+        description = "",
+        section = taskSpeedSection,
+        position = 14
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphWarpedCreatures()
+    {
+        return 365;
+    }
+
+    @ConfigItem(
+        keyName = "kphCaveHorrors",
+        name = "Cave horrors",
+        description = "",
+        section = taskSpeedSection,
+        position = 15
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphCaveHorrors()
+    {
+        return 455;
+    }
+
+    @ConfigItem(
+        keyName = "kphAberrantSpectres",
+        name = "Aberrant spectres",
+        description = "",
+        section = taskSpeedSection,
+        position = 16
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphAberrantSpectres()
+    {
+        return 390;
+    }
+
+    @ConfigItem(
+        keyName = "kphWyrms",
+        name = "Wyrms",
+        description = "",
+        section = taskSpeedSection,
+        position = 17
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphWyrms()
+    {
+        return 815;
+    }
+
+    @ConfigItem(
+        keyName = "kphDustDevils",
+        name = "Dust devils",
+        description = "",
+        section = taskSpeedSection,
+        position = 18
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphDustDevils()
+    {
+        return 800;
+    }
+
+    @ConfigItem(
+        keyName = "kphKurask",
+        name = "Kurask",
+        description = "",
+        section = taskSpeedSection,
+        position = 19
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphKurask()
+    {
+        return 205;
+    }
+
+    @ConfigItem(
+        keyName = "kphVenators",
+        name = "Venators",
+        description = "",
+        section = taskSpeedSection,
+        position = 20
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphVenators()
+    {
+        return 85;
+    }
+
+    @ConfigItem(
+        keyName = "kphGargoyles",
+        name = "Gargoyles",
+        description = "",
+        section = taskSpeedSection,
+        position = 21
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphGargoyles()
+    {
+        return 285;
+    }
+
+    @ConfigItem(
+        keyName = "kphAquanites",
+        name = "Aquanites",
+        description = "",
+        section = taskSpeedSection,
+        position = 22
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphAquanites()
+    {
+        return 165;
+    }
+
+    @ConfigItem(
+        keyName = "kphNechryael",
+        name = "Nechryael",
+        description = "",
+        section = taskSpeedSection,
+        position = 23
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphNechryael()
+    {
+        return 475;
+    }
+
+    @ConfigItem(
+        keyName = "kphDrakes",
+        name = "Drakes",
+        description = "",
+        section = taskSpeedSection,
+        position = 24
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphDrakes()
+    {
+        return 150;
+    }
+
+    @ConfigItem(
+        keyName = "kphAbyssalDemons",
+        name = "Abyssal demons",
+        description = "",
+        section = taskSpeedSection,
+        position = 25
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphAbyssalDemons()
+    {
+        return 535;
+    }
+
+    @ConfigItem(
+        keyName = "kphDarkBeasts",
+        name = "Dark beasts",
+        description = "",
+        section = taskSpeedSection,
+        position = 26
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphDarkBeasts()
+    {
+        return 190;
+    }
+
+    @ConfigItem(
+        keyName = "kphAraxytes",
+        name = "Araxytes",
+        description = "",
+        section = taskSpeedSection,
+        position = 27
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphAraxytes()
+    {
+        return 600;
+    }
+
+    @ConfigItem(
+        keyName = "kphSmokeDevils",
+        name = "Smoke devils",
+        description = "",
+        section = taskSpeedSection,
+        position = 28
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphSmokeDevils()
+    {
+        return 810;
+    }
+
+    @ConfigItem(
+        keyName = "kphHydras",
+        name = "Hydras",
+        description = "",
+        section = taskSpeedSection,
+        position = 29
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphHydras()
+    {
+        return 100;
+    }
+
+    @ConfigItem(
+        keyName = "taskChoiceRecalculate",
+        name = "Save and recalculate",
+        description = "Recalculates the average that Balanced and Fast + Best compare against.",
+        section = taskSpeedSection,
+        position = 30
+    )
+    default boolean taskChoiceRecalculate()
+    {
+        return false;
     }
 
     @ConfigItem(

@@ -13,10 +13,10 @@ is worth per superior spawned.
 
 - Panel over his interface, one line per option, with the unique boost shown
   next to the odds when an option carries one.
-- Best option colored green, in the panel and on its name in his list.
+- Estimated task time next to the odds.
+- Picked option colored green, in the panel and on its name in his list.
 - Set to show the panel, the highlight, both, or neither.
 - Odds quoted for whichever drop you are after, set in the config.
-- Options that cannot be resolved show no odds and are never marked best.
 
 The four settings for "Odds for", listed with what a slayer 95 hydra task
 comes to before any modifier:
@@ -33,6 +33,19 @@ at a flat 1 in 200 kills (1 in 150 with the elite Combat Achievements reward)
 whichever task is taken. For comparison against that hydra task, a slayer 55
 turoth task is 1 in 832 for a heart, and 1 in 277 if its offer carries a 200%
 superior boost.
+
+Which option gets picked is set by "Pick":
+
+| Setting | Picks |
+| --- | --- |
+| Fastest | The shortest task |
+| Fast + Best | The shortest task, unless a boosted multicombat task is worth more per hour |
+| Balanced | The most unique rolls per hour |
+| Max chance | The best odds per superior |
+| Auto (default) | Fast + Best below 50 Mortimer tasks, Balanced from 50 on |
+
+Kills per hour for each task and the overhead per task are set under
+"Task Choice speeds".
 
 ## Master Rules
 
