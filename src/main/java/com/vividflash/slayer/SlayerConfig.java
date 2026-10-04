@@ -37,35 +37,35 @@ public interface SlayerConfig extends Config
 {
     @ConfigSection(
         name = "Nieve instead of Steve",
-        description = "Nieve restoration tweaks.",
+        description = "",
         position = 4
     )
     String nieveSection = "nieveSection";
 
     @ConfigSection(
         name = "Master Rules",
-        description = "Which slayer master to use for which task number, with milestone reminders and point projections.",
+        description = "",
         position = 2
     )
     String masterRulesSection = "masterRulesSection";
 
     @ConfigSection(
         name = "Task Sorter",
-        description = "Sorting for the slayer task list interface.",
+        description = "",
         position = 3
     )
     String taskSorterSection = "taskSorterSection";
 
     @ConfigSection(
         name = "Task Choice",
-        description = "Helpers for Mortimer's task choice.",
+        description = "Mortimer's task offers.",
         position = 0
     )
     String taskChoiceSection = "taskChoiceSection";
 
     @ConfigSection(
         name = "Task Choice speeds",
-        description = "Kill speeds the task choice pick is worked out from.",
+        description = "Kill speeds the pick is worked out from.",
         position = 1,
         closedByDefault = true
     )
@@ -74,7 +74,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskChoiceOddsDisplay",
         name = "Show slayer-unique odds",
-        description = "While Mortimer offers tasks, show what each option is worth per superior. The panel lists every option with its estimated time, the highlight colors the picked option's name in his list.",
+        description = "Panel: each option's odds and estimated time. Highlight: colors the picked option in his list.",
         section = taskChoiceSection,
         position = 0
     )
@@ -86,7 +86,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskChoiceOddsMode",
         name = "Odds for",
-        description = "Which superior drop the odds are quoted for. A slayer unique roll counts every roll of either unique table, a unique item counts everything but its nothing outcome. The best pick is the same under all four.",
+        description = "Slayer unique roll counts every roll of a unique table. Unique item leaves out the nothing outcome.",
         section = taskChoiceSection,
         position = 1
     )
@@ -98,7 +98,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskChoicePickMode",
         name = "Pick",
-        description = "Fastest: the shortest task. Fast + Best: the shortest, unless a boosted multicombat task is worth more per hour. Balanced: the most unique rolls per hour. Max chance: the best odds per superior. Auto: Fast + Best until 50 Mortimer tasks, Balanced after.",
+        description = "Fast + Best: fastest, unless a boosted multicombat task is worth more per hour. Balanced: most unique rolls per hour. Max chance: best odds per superior. Auto: Fast + Best until 50 Mortimer tasks, then Balanced.",
         section = taskChoiceSection,
         position = 2
     )
@@ -110,7 +110,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskChoiceOverhead",
         name = "Overhead per task",
-        description = "Time added to every task for travel, banking and getting the next one.",
+        description = "Time added per task for travel, banking and getting the next one.",
         section = taskSpeedSection,
         position = 0
     )
@@ -542,7 +542,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "nieve",
         name = "Replace Steve with Nieve",
-        description = "Show Nieve instead of Steve, including her model, dialogue name and related text.",
+        description = "Model, name, chathead, menu entries and dialogue.",
         section = nieveSection,
         position = 0
     )
@@ -554,7 +554,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "masterRules",
         name = "Enable master rules",
-        description = "Recommend a slayer master per task number, highlight the right/wrong masters, and show point projections.",
+        description = "",
         section = masterRulesSection,
         position = 0
     )
@@ -566,7 +566,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "defaultMaster",
         name = "Default master",
-        description = "The master to use for any task number no rule matches.",
+        description = "Used when no rule matches.",
         section = masterRulesSection,
         position = 1
     )
@@ -578,7 +578,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule1Enabled",
         name = "Rule 1",
-        description = "Enable rule 1.",
+        description = "",
         section = masterRulesSection,
         position = 2
     )
@@ -591,7 +591,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule1Interval",
         name = "Rule 1: every Xth task",
-        description = "Rule 1 applies when the next task number is a multiple of this.",
+        description = "",
         section = masterRulesSection,
         position = 3
     )
@@ -603,7 +603,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule1Master",
         name = "Rule 1: use master",
-        description = "The master to take rule-1 tasks from.",
+        description = "",
         section = masterRulesSection,
         position = 4
     )
@@ -615,7 +615,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule2Enabled",
         name = "Rule 2",
-        description = "Enable rule 2.",
+        description = "",
         section = masterRulesSection,
         position = 5
     )
@@ -628,7 +628,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule2Interval",
         name = "Rule 2: every Xth task",
-        description = "Rule 2 applies when the next task number is a multiple of this.",
+        description = "",
         section = masterRulesSection,
         position = 6
     )
@@ -640,7 +640,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule2Master",
         name = "Rule 2: use master",
-        description = "The master to take rule-2 tasks from.",
+        description = "",
         section = masterRulesSection,
         position = 7
     )
@@ -652,7 +652,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule3Enabled",
         name = "Rule 3",
-        description = "Enable rule 3.",
+        description = "",
         section = masterRulesSection,
         position = 8
     )
@@ -665,7 +665,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule3Interval",
         name = "Rule 3: every Xth task",
-        description = "Rule 3 applies when the next task number is a multiple of this.",
+        description = "",
         section = masterRulesSection,
         position = 9
     )
@@ -677,7 +677,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule3Master",
         name = "Rule 3: use master",
-        description = "The master to take rule-3 tasks from.",
+        description = "",
         section = masterRulesSection,
         position = 10
     )
@@ -689,7 +689,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule4Enabled",
         name = "Rule 4",
-        description = "Enable rule 4.",
+        description = "",
         section = masterRulesSection,
         position = 11
     )
@@ -702,7 +702,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule4Interval",
         name = "Rule 4: every Xth task",
-        description = "Rule 4 applies when the next task number is a multiple of this.",
+        description = "",
         section = masterRulesSection,
         position = 12
     )
@@ -714,7 +714,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule4Master",
         name = "Rule 4: use master",
-        description = "The master to take rule-4 tasks from.",
+        description = "",
         section = masterRulesSection,
         position = 13
     )
@@ -726,7 +726,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule5Enabled",
         name = "Rule 5",
-        description = "Enable rule 5.",
+        description = "",
         section = masterRulesSection,
         position = 14
     )
@@ -739,7 +739,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule5Interval",
         name = "Rule 5: every Xth task",
-        description = "Rule 5 applies when the next task number is a multiple of this.",
+        description = "",
         section = masterRulesSection,
         position = 15
     )
@@ -751,7 +751,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "rule5Master",
         name = "Rule 5: use master",
-        description = "The master to take rule-5 tasks from.",
+        description = "",
         section = masterRulesSection,
         position = 16
     )
@@ -762,10 +762,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "eliteWesternDiary",
-        name = "Elite Western diary done",
-        description = "Tick if the elite Western Provinces diary is complete (Nieve tasks pay 15 base points instead of 12).",
+        name = "Elite Western diary",
+        description = "Nieve tasks pay 15 base points instead of 12.",
         section = masterRulesSection,
-        position = 17
+        position = 18
     )
     default boolean eliteWesternDiary()
     {
@@ -774,10 +774,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "eliteKourendDiary",
-        name = "Elite Kourend diary done",
-        description = "Tick if the elite Kourend & Kebos diary is complete (Konar tasks pay 20 base points instead of 18).",
+        name = "Elite Kourend diary",
+        description = "Konar tasks pay 20 base points instead of 18.",
         section = masterRulesSection,
-        position = 18
+        position = 17
     )
     default boolean eliteKourendDiary()
     {
@@ -787,7 +787,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "showOverlay",
         name = "Show overlay near masters",
-        description = "Show a panel with the next task number, recommended master, current points, and projected points while a slayer master is nearby.",
+        description = "Next task number, selected master, points now and after the next task.",
         section = masterRulesSection,
         position = 19
     )
@@ -799,7 +799,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "highlightCorrectMaster",
         name = "Highlight correct master",
-        description = "Outline the recommended master.",
+        description = "",
         section = masterRulesSection,
         position = 20
     )
@@ -811,7 +811,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "correctMasterColor",
         name = "Correct master color",
-        description = "Outline color for the recommended master.",
+        description = "",
         section = masterRulesSection,
         position = 21
     )
@@ -823,7 +823,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "highlightWrongMasters",
         name = "Highlight wrong masters",
-        description = "Outline the masters to avoid for the next task.",
+        description = "",
         section = masterRulesSection,
         position = 22
     )
@@ -835,7 +835,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "wrongMasterColor",
         name = "Wrong master color",
-        description = "Outline color for the wrong masters.",
+        description = "",
         section = masterRulesSection,
         position = 23
     )
@@ -847,7 +847,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "milestoneChatMessage",
         name = "Milestone chat reminder",
-        description = "Post a chat message when your next task matches a rule, naming the master to visit.",
+        description = "Chat message when your next task matches a rule.",
         section = masterRulesSection,
         position = 24
     )
@@ -859,7 +859,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "blockWrongMasters",
         name = "Block wrong masters",
-        description = "Consume the Assignment option on masters other than the recommended one (a chat message explains the block).",
+        description = "Consumes Assignment on masters other than the selected one.",
         section = masterRulesSection,
         position = 25
     )
@@ -871,7 +871,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "hideWrongMastersOnMilestone",
         name = "Hide wrong masters on milestone",
-        description = "While your next task matches a rule, remove the Assignment option from masters other than the recommended one.",
+        description = "Removes Assignment from the other masters while a rule matches.",
         section = masterRulesSection,
         position = 26
     )
@@ -883,7 +883,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskSorter",
         name = "Sort task list",
-        description = "Sort the slayer task list interface (opened from the slayer rewards screen).",
+        description = "",
         section = taskSorterSection,
         position = 0
     )
@@ -895,7 +895,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskSortMethod",
         name = "Sort by",
-        description = "Weight sorts by the assignment odds shown in the list; falls back to alphabetical when the list shows none.",
+        description = "Weight falls back to alphabetical when the list shows no odds.",
         section = taskSorterSection,
         position = 1
     )
@@ -907,7 +907,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "taskSortReversed",
         name = "Reverse order",
-        description = "Reverse the chosen sort order.",
+        description = "",
         section = taskSorterSection,
         position = 2
     )

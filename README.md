@@ -1,67 +1,66 @@
 # Better Slayer
 
-Slayer tweaks in one plugin. Each has its own toggle.
+Get your imbued heart.\
+Assists with Mortimer and normal Masters.\
+Helps you pick the best tasks and the right master, and **brings back
+Nieve** while we're at it.\
+Each part can be toggled.
 
 ## Mortimer: Task Choice Odds
 
-Mortimer offers a choice of two tasks, three once you have taken 50 of his,
-and every offer carries one modifier. One of those modifiers raises the
-superior unique chance, by 10% to 300% depending on the monster.
+Shows what each task Mortimer offers is worth per superior spawned.
 
-This reads the offer from the game's own task data and shows what each option
-is worth per superior spawned.
-
-- Panel over his interface, one line per option, with the unique boost shown
-  next to the odds when an option carries one.
+- Panel over his interface, with the unique boost shown next to the odds when
+  an option carries one.
 - Estimated task time next to the odds.
 - Picked option colored green, in the panel and on its name in his list.
 - Set to show the panel, the highlight, both, or neither.
-- Odds quoted for whichever drop you are after, set in the config.
+- Odds quoted for whichever drop you are after.
 
-The four settings for "Odds for", listed with what a slayer 95 hydra task
+The four settings for **Odds for**, each with what a slayer 95 hydra task
 comes to before any modifier:
 
-| Setting | What it counts | Hydra task |
-| --- | --- | --- |
-| Slayer unique roll | A unique table is rolled at all, the outcome that drops nothing included | 1 in 10 |
-| Unique item | Any item off either table, so the two battlestaves as well as the heart and the gem | 1 in 18 |
-| Heart or gem | An imbued heart or an eternal gem | 1 in 80 |
-| Imbued heart | An imbued heart on its own | 1 in 160 |
+- **Slayer unique roll** `1 in 10`: a unique table is rolled at all, the
+  outcome that drops nothing included.
+- **Unique item** `1 in 18`: any item off either table, so the two
+  battlestaves as well as the heart and the gem.
+- **Heart or gem** `1 in 80`: an imbued heart or an eternal gem.
+- **Imbued heart** `1 in 160`: an imbued heart on its own.
 
-The odds are per superior spawned rather than per kill, since superiors spawn
-at a flat 1 in 200 kills (1 in 150 with the elite Combat Achievements reward)
-whichever task is taken. For comparison against that hydra task, a slayer 55
-turoth task is 1 in 832 for a heart, and 1 in 277 if its offer carries a 200%
-superior boost.
+For comparison against that hydra task, a slayer 55 turoth task is `1 in 832`
+for a heart, and `1 in 277` if its offer carries a 200% superior boost.
 
-Which option gets picked is set by "Pick":
+Which option gets picked is set by **Pick**:
 
-| Setting | Picks |
-| --- | --- |
-| Fastest | The shortest task |
-| Fast + Best | The shortest task, unless a boosted multicombat task is worth more per hour |
-| Balanced | The most unique rolls per hour |
-| Max chance | The best odds per superior |
-| Auto (default) | Fast + Best below 50 Mortimer tasks, Balanced from 50 on |
+- **Fastest**: the shortest task.
+- **Fast + Best**: the shortest task, unless a boosted multicombat task is
+  worth more per hour.
+- **Balanced**: the most unique rolls per hour.
+- **Max chance**: the best odds per superior.
+- **Auto** (default): Fast + Best below 50 Mortimer tasks, Balanced from 50
+  on.
 
 Kills per hour for each task and the overhead per task are set under
-"Task Choice speeds".
+**Task Choice speeds**.
 
 ## Master Rules
 
-Five "every Xth task, use master Y" rules plus a default master. Highest
-matching interval wins. Krystilia and Mortimer run their own task streak.
+Five "every Xth task, use master Y" rules plus default. Highest matching
+interval wins.\
+Krystilia and Mortimer have their own task streak.
 
-- Recommended master outlined green, the rest red, while you're near them.
-  Both colors are configurable.
-- Panel near masters showing the next task number, which master to use, points
-  now and points after the next task.
-- Chat reminder when the next task hits a rule.
-- Optionally eat the Assignment click on any master other than the recommended
-  one, the default master included.
-- Optionally drop the Assignment option from those masters entirely. That one
-  applies only while a rule matches.
-- Elite Western and elite Kourend diary toggles for the point values.
+- **Block wrong masters**: consumes the `Assignment` click on any master
+  other than the selected one.
+- **Elite Kourend diary** and **Elite Western diary**: used for the point
+  values.
+- **Hide wrong masters on milestone**: removes `Assignment` from those masters
+  while a rule matches.
+- **Highlight correct master** and **Highlight wrong masters**: selected
+  master outlined green, the rest red, while you're near them. Both colors
+  are configurable.
+- **Milestone chat reminder**: chat message when the next task hits a rule.
+- **Show overlay near masters**: panel showing the next task number, which
+  master to use, points now and points after the next task.
 
 ## Task Sorter
 
