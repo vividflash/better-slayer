@@ -65,14 +65,19 @@ public class MasterHighlightOverlay extends Overlay
             return null;
         }
 
-        SlayerMaster recommended = feature.getRecommendation().master;
+        MasterRulesFeature.Recommendation recommendation = feature.getRecommendation();
+        SlayerMaster recommended = recommendation.master;
+        if (recommended == null)
+        {
+            return null;
+        }
         for (Map.Entry<NPC, SlayerMaster> entry : feature.getNearbyMasters().entrySet())
         {
             boolean correct = entry.getValue() == recommended;
-            if (!correct && entry.getValue().hasSeparateStreak())
+            if (!correct && recommendation.fromRule && entry.getValue().hasSeparateStreak())
             {
-                // Separate-streak masters are never "wrong". Their tasks
-                // can't cost a normal-streak milestone.
+                // On a rule task separate-streak masters are not "wrong".
+                // Their tasks can't cost a normal-streak milestone.
                 continue;
             }
             if (correct && !config.highlightCorrectMaster())

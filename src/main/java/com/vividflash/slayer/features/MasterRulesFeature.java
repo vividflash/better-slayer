@@ -26,6 +26,7 @@ package com.vividflash.slayer.features;
 
 import com.vividflash.slayer.SlayerConfig;
 import com.vividflash.slayer.SlayerMaster;
+import java.awt.Color;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.inject.Inject;
@@ -46,6 +47,7 @@ import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ColorUtil;
 
 /**
  * Recommends which slayer master to take the next task from, based on
@@ -60,6 +62,12 @@ import net.runelite.client.ui.overlay.OverlayManager;
 @Singleton
 public class MasterRulesFeature implements Feature
 {
+    /** Green for the milestone reminder, apart from the red task-complete lines and legible on either chatbox background. */
+    private static final Color REMINDER_MESSAGE_COLOR = new Color(0x00A000);
+
+    /** Bright red for the blocked-click message. */
+    private static final Color BLOCKED_MESSAGE_COLOR = new Color(0xEF1020);
+
     @Inject
     private Client client;
 
@@ -81,7 +89,10 @@ public class MasterRulesFeature implements Feature
     private final Map<NPC, SlayerMaster> nearbyMasters = new LinkedHashMap<>();
     private int lastAnnouncedTaskNumber = -1;
 
-    /** The recommended master plus whether it came from a rule (vs the default). */
+    /**
+     * The recommended master plus whether it came from a rule (vs the default).
+     * The master is null when no rule matches and the default is None.
+     */
     public static class Recommendation
     {
         public final SlayerMaster master;
@@ -183,7 +194,12 @@ public class MasterRulesFeature implements Feature
 
     public int getProjectedGain()
     {
-        return getRecommendation().master.getPointsForTask(
+        SlayerMaster master = getRecommendation().master;
+        if (master == null)
+        {
+            return 0;
+        }
+        return master.getPointsForTask(
             getNextTaskNumber(), config.eliteWesternDiary(), config.eliteKourendDiary());
     }
 
@@ -243,8 +259,8 @@ public class MasterRulesFeature implements Feature
         int gain = recommendation.master.getPointsForTask(
             next, config.eliteWesternDiary(), config.eliteKourendDiary());
         client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
-            "[Better Slayer] Task #" + next + " matches a rule: take it from "
-                + recommendation.master.getDisplayName() + " (+" + gain + " points).", null);
+            ColorUtil.wrapWithColorTag("Task #" + next + ": use "
+                + recommendation.master.getDisplayName() + " (+" + gain + " points).", REMINDER_MESSAGE_COLOR), null);
     }
 
     @Subscribe
@@ -303,20 +319,28 @@ public class MasterRulesFeature implements Feature
         }
 
         SlayerMaster clicked = SlayerMaster.forNpc(npc);
-        if (clicked == null || clicked.hasSeparateStreak())
+        if (clicked == null)
         {
             return;
         }
 
         Recommendation recommendation = getRecommendation();
-        if (clicked == recommendation.master)
+        if (recommendation.master == null || clicked == recommendation.master)
+        {
+            return;
+        }
+
+        if (recommendation.fromRule && clicked.hasSeparateStreak())
         {
             return;
         }
 
         event.consume();
+        String name = recommendation.master.getDisplayName();
+        String message = recommendation.fromRule
+            ? "Milestone Task: use " + name + " for +" + getProjectedGain() + " points"
+            : "Wrong master: use " + name;
         client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
-            "[Better Slayer] Wrong master: take task #" + getNextTaskNumber() + " from "
-                + recommendation.master.getDisplayName() + ".", null);
+            ColorUtil.wrapWithColorTag(message, BLOCKED_MESSAGE_COLOR), null);
     }
 }

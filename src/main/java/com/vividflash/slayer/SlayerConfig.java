@@ -570,9 +570,9 @@ public interface SlayerConfig extends Config
         section = masterRulesSection,
         position = 1
     )
-    default RuleMaster defaultMaster()
+    default DefaultMaster defaultMaster()
     {
-        return RuleMaster.MAZCHNA;
+        return DefaultMaster.NONE;
     }
 
     @ConfigItem(

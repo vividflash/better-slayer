@@ -74,16 +74,20 @@ public class MasterRulesOverlay extends OverlayPanel
             .build());
         panelComponent.getChildren().add(LineComponent.builder()
             .left("Take from:")
-            .right(recommendation.master.getDisplayName())
+            .right(recommendation.master == null ? "Any" : recommendation.master.getDisplayName())
             .build());
         panelComponent.getChildren().add(LineComponent.builder()
             .left("Points:")
             .right(Integer.toString(points))
             .build());
-        panelComponent.getChildren().add(LineComponent.builder()
-            .left("After next:")
-            .right(points + gain + " (+" + gain + ")")
-            .build());
+        // The gain is worked out from the normal streak, which a separate-streak master does not use.
+        if (recommendation.master != null && !recommendation.master.hasSeparateStreak())
+        {
+            panelComponent.getChildren().add(LineComponent.builder()
+                .left("After next:")
+                .right(points + gain + " (+" + gain + ")")
+                .build());
+        }
 
         return super.render(graphics);
     }

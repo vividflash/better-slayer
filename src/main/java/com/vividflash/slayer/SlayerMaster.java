@@ -30,20 +30,19 @@ import net.runelite.api.gameval.NpcID;
 /**
  * Slayer masters with their base reward points per completed task. The point
  * values feed the normal-streak recommendation math. They go unused for the
- * separate-streak masters, which no rule can target.
+ * separate-streak masters, which no rule can target. A master's stand-in
+ * (Aya, Achtryn, Steve, Kuradal) is matched by name as that master.
  */
 public enum SlayerMaster
 {
-    TURAEL("Turael", 0),
+    TURAEL("Turael", 0, "Aya"),
     SPRIA("Spria", 0),
-    AYA("Aya", 0),
-    MAZCHNA("Mazchna", 6),
-    ACHTRYN("Achtryn", 6),
+    MAZCHNA("Mazchna", 6, "Achtryn"),
     VANNAKA("Vannaka", 8),
     CHAELDAR("Chaeldar", 10),
     KONAR("Konar quo Maten", 18),
     NIEVE("Nieve", 12, "Steve"),
-    DURADEL("Duradel", 15),
+    DURADEL("Duradel", 15, "Kuradal"),
     KRYSTILIA("Krystilia", 25, true),
     MORTIMER("Mortimer", 0, true);
 
@@ -52,8 +51,8 @@ public enum SlayerMaster
     /**
      * True for masters whose tasks run on their own streak (Krystilia's
      * Wilderness streak, Mortimer's own task count); taking one never
-     * consumes a normal-streak milestone, so the wrong-master guards must
-     * leave them alone.
+     * consumes a normal-streak milestone, so the wrong-master guards leave
+     * them alone on a rule task.
      */
     private final boolean separateStreak;
     private final String[] extraNpcNames;

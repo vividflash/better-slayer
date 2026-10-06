@@ -25,13 +25,14 @@
 package com.vividflash.slayer;
 
 /**
- * The masters offered in the Master Rules dropdowns. Only masters whose tasks
- * advance the normal streak belong here. A rule targets "your Nth
- * normal-streak task", which a separate-streak master (Krystilia, Mortimer)
- * can never hand out.
+ * The Master Rules default dropdown: every master plus NONE, which leaves a
+ * task without a matching rule unmarked and unblocked. The separate-streak
+ * masters are offered here so the other masters can be marked and blocked
+ * while working their streak.
  */
-public enum RuleMaster
+public enum DefaultMaster
 {
+    NONE(null),
     TURAEL(SlayerMaster.TURAEL),
     SPRIA(SlayerMaster.SPRIA),
     MAZCHNA(SlayerMaster.MAZCHNA),
@@ -39,15 +40,18 @@ public enum RuleMaster
     CHAELDAR(SlayerMaster.CHAELDAR),
     KONAR(SlayerMaster.KONAR),
     NIEVE(SlayerMaster.NIEVE),
-    DURADEL(SlayerMaster.DURADEL);
+    DURADEL(SlayerMaster.DURADEL),
+    KRYSTILIA(SlayerMaster.KRYSTILIA),
+    MORTIMER(SlayerMaster.MORTIMER);
 
     private final SlayerMaster master;
 
-    RuleMaster(SlayerMaster master)
+    DefaultMaster(SlayerMaster master)
     {
         this.master = master;
     }
 
+    /** Null for NONE. */
     public SlayerMaster getMaster()
     {
         return master;
