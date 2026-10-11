@@ -43,6 +43,7 @@ import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.PostMenuSort;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -136,6 +137,11 @@ public class MasterRulesFeature implements Feature
     public int getNextTaskNumber()
     {
         return getCompletedTasks() + 1;
+    }
+
+    public int getMortimerTasksCompleted()
+    {
+        return client.getVarpValue(VarPlayerID.SLAYER_MORTIMER_TASKS_COMPLETED);
     }
 
     public int getCurrentPoints()

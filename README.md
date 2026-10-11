@@ -6,7 +6,7 @@ Helps you pick the best tasks and the right master, and **brings back
 Nieve** while we're at it.\
 Each part can be toggled.
 
-## Mortimer: Task Choice Odds
+## Mortimer Task Choice
 
 Shows what each task Mortimer offers is worth per superior spawned.
 
@@ -41,9 +41,13 @@ Which option gets picked is set by **Pick**:
   on.
 
 Kills per hour for each task and the overhead per task are set under
-**Task Choice speeds**.
+**Mortimer Task Speeds**.
 
-## Master Rules
+**Show task areas**: best area, fastest way there and kill method for each
+offered task. The task you take stays on screen for **Retain area duration**,
+`180` seconds by default, counted from when you leave him.
+
+## Slayer Master Rules
 
 Five "every Xth task, use master Y" rules plus default. Highest matching
 interval wins.\
@@ -60,7 +64,9 @@ Krystilia and Mortimer have their own task streak.
   are configurable.
 - **Milestone chat reminder**: chat message when the next task hits a rule.
 - **Show overlay near masters**: panel showing the next task number, which
-  master to use, points now and points after the next task.
+  master to use, points now and points after the next task. With Mortimer as
+  the master to use, it shows his task count, out of `50` until 50, in place of the next
+  task number.
 
 ## Task Sorter
 
@@ -74,3 +80,7 @@ Shows Nieve instead of Steve, covering her world model, name, chathead, menu
 entries and dialogue. Steve's backstory boxes and the chat option asking about
 the new master are reworded to fit her. With Nieve alive, the gravestone in the
 stronghold remembers Glough instead, interface and examine text both.
+
+## Konar Task Area
+
+Konar's task area can be set to be posted in chat when she assigns a task.

@@ -36,35 +36,29 @@ import net.runelite.client.config.Units;
 public interface SlayerConfig extends Config
 {
     @ConfigSection(
-        name = "Nieve instead of Steve",
+        name = "Slayer Master Rules",
         description = "",
-        position = 4
-    )
-    String nieveSection = "nieveSection";
-
-    @ConfigSection(
-        name = "Master Rules",
-        description = "",
-        position = 2
+        position = 2,
+        closedByDefault = true
     )
     String masterRulesSection = "masterRulesSection";
 
     @ConfigSection(
         name = "Task Sorter",
         description = "",
-        position = 3
+        position = 5
     )
     String taskSorterSection = "taskSorterSection";
 
     @ConfigSection(
-        name = "Task Choice",
-        description = "Mortimer's task offers.",
+        name = "Mortimer Task Choice",
+        description = "",
         position = 0
     )
     String taskChoiceSection = "taskChoiceSection";
 
     @ConfigSection(
-        name = "Task Choice speeds",
+        name = "Mortimer Task Speeds",
         description = "Kill speeds the pick is worked out from.",
         position = 1,
         closedByDefault = true
@@ -73,7 +67,7 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "taskChoiceOddsDisplay",
-        name = "Show slayer-unique odds",
+        name = "Show odds",
         description = "Panel: each option's odds and estimated time. Highlight: colors the picked option in his list.",
         section = taskChoiceSection,
         position = 0
@@ -108,6 +102,32 @@ public interface SlayerConfig extends Config
     }
 
     @ConfigItem(
+        keyName = "taskChoiceShowAreas",
+        name = "Show task areas",
+        description = "Best area, fastest way there and kill method for each offered task.",
+        section = taskChoiceSection,
+        position = 3
+    )
+    default boolean taskChoiceShowAreas()
+    {
+        return true;
+    }
+
+    @ConfigItem(
+        keyName = "taskChoiceAreaRetain",
+        name = "Retain area duration",
+        description = "Counted from when you leave Mortimer.",
+        section = taskChoiceSection,
+        position = 4
+    )
+    @Range(min = 10)
+    @Units(Units.SECONDS)
+    default int taskChoiceAreaRetain()
+    {
+        return 180;
+    }
+
+    @ConfigItem(
         keyName = "taskChoiceOverhead",
         name = "Overhead per task",
         description = "Time added per task for travel, banking and getting the next one.",
@@ -123,7 +143,7 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphCrawlingHands",
-        name = "Crawling hands",
+        name = "Crawling Hands",
         description = "",
         section = taskSpeedSection,
         position = 1
@@ -137,7 +157,7 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphCaveCrawlers",
-        name = "Cave crawlers",
+        name = "Cave Crawlers",
         description = "",
         section = taskSpeedSection,
         position = 2
@@ -207,7 +227,7 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphInfernalMages",
-        name = "Infernal mages",
+        name = "Infernal Mages",
         description = "",
         section = taskSpeedSection,
         position = 7
@@ -234,11 +254,37 @@ public interface SlayerConfig extends Config
     }
 
     @ConfigItem(
+        keyName = "kphBasiliskKnights",
+        name = "Basilisk Knights",
+        description = "",
+        section = taskSpeedSection,
+        position = 9
+    )
+    @Range(min = 1)
+    @Units("/h")
+    default int kphBasiliskKnights()
+    {
+        return 92;
+    }
+
+    @ConfigItem(
+        keyName = "basiliskKnightsForPick",
+        name = "Pick by Basilisk Knights",
+        description = "",
+        section = taskSpeedSection,
+        position = 10
+    )
+    default boolean basiliskKnightsForPick()
+    {
+        return false;
+    }
+
+    @ConfigItem(
         keyName = "kphBloodveld",
         name = "Bloodveld",
         description = "",
         section = taskSpeedSection,
-        position = 9
+        position = 11
     )
     @Range(min = 1)
     @Units("/h")
@@ -252,7 +298,7 @@ public interface SlayerConfig extends Config
         name = "Gryphons",
         description = "",
         section = taskSpeedSection,
-        position = 10
+        position = 12
     )
     @Range(min = 1)
     @Units("/h")
@@ -266,7 +312,7 @@ public interface SlayerConfig extends Config
         name = "Jellies",
         description = "",
         section = taskSpeedSection,
-        position = 11
+        position = 13
     )
     @Range(min = 1)
     @Units("/h")
@@ -277,10 +323,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphCustodianStalkers",
-        name = "Custodian stalkers",
+        name = "Custodian Stalkers",
         description = "",
         section = taskSpeedSection,
-        position = 12
+        position = 14
     )
     @Range(min = 1)
     @Units("/h")
@@ -294,21 +340,21 @@ public interface SlayerConfig extends Config
         name = "Turoth",
         description = "",
         section = taskSpeedSection,
-        position = 13
+        position = 15
     )
     @Range(min = 1)
     @Units("/h")
     default int kphTuroth()
     {
-        return 210;
+        return 183;
     }
 
     @ConfigItem(
         keyName = "kphWarpedCreatures",
-        name = "Warped creatures",
+        name = "Warped Creatures",
         description = "",
         section = taskSpeedSection,
-        position = 14
+        position = 16
     )
     @Range(min = 1)
     @Units("/h")
@@ -319,10 +365,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphCaveHorrors",
-        name = "Cave horrors",
+        name = "Cave Horrors",
         description = "",
         section = taskSpeedSection,
-        position = 15
+        position = 17
     )
     @Range(min = 1)
     @Units("/h")
@@ -333,10 +379,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphAberrantSpectres",
-        name = "Aberrant spectres",
+        name = "Aberrant Spectres",
         description = "",
         section = taskSpeedSection,
-        position = 16
+        position = 18
     )
     @Range(min = 1)
     @Units("/h")
@@ -350,7 +396,7 @@ public interface SlayerConfig extends Config
         name = "Wyrms",
         description = "",
         section = taskSpeedSection,
-        position = 17
+        position = 19
     )
     @Range(min = 1)
     @Units("/h")
@@ -361,10 +407,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphDustDevils",
-        name = "Dust devils",
+        name = "Dust Devils",
         description = "",
         section = taskSpeedSection,
-        position = 18
+        position = 20
     )
     @Range(min = 1)
     @Units("/h")
@@ -378,13 +424,13 @@ public interface SlayerConfig extends Config
         name = "Kurask",
         description = "",
         section = taskSpeedSection,
-        position = 19
+        position = 21
     )
     @Range(min = 1)
     @Units("/h")
     default int kphKurask()
     {
-        return 205;
+        return 180;
     }
 
     @ConfigItem(
@@ -392,7 +438,7 @@ public interface SlayerConfig extends Config
         name = "Venators",
         description = "",
         section = taskSpeedSection,
-        position = 20
+        position = 22
     )
     @Range(min = 1)
     @Units("/h")
@@ -406,7 +452,7 @@ public interface SlayerConfig extends Config
         name = "Gargoyles",
         description = "",
         section = taskSpeedSection,
-        position = 21
+        position = 23
     )
     @Range(min = 1)
     @Units("/h")
@@ -420,7 +466,7 @@ public interface SlayerConfig extends Config
         name = "Aquanites",
         description = "",
         section = taskSpeedSection,
-        position = 22
+        position = 24
     )
     @Range(min = 1)
     @Units("/h")
@@ -434,7 +480,7 @@ public interface SlayerConfig extends Config
         name = "Nechryael",
         description = "",
         section = taskSpeedSection,
-        position = 23
+        position = 25
     )
     @Range(min = 1)
     @Units("/h")
@@ -448,7 +494,7 @@ public interface SlayerConfig extends Config
         name = "Drakes",
         description = "",
         section = taskSpeedSection,
-        position = 24
+        position = 26
     )
     @Range(min = 1)
     @Units("/h")
@@ -459,10 +505,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphAbyssalDemons",
-        name = "Abyssal demons",
+        name = "Abyssal Demons",
         description = "",
         section = taskSpeedSection,
-        position = 25
+        position = 27
     )
     @Range(min = 1)
     @Units("/h")
@@ -473,10 +519,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphDarkBeasts",
-        name = "Dark beasts",
+        name = "Dark Beasts",
         description = "",
         section = taskSpeedSection,
-        position = 26
+        position = 28
     )
     @Range(min = 1)
     @Units("/h")
@@ -490,7 +536,7 @@ public interface SlayerConfig extends Config
         name = "Araxytes",
         description = "",
         section = taskSpeedSection,
-        position = 27
+        position = 29
     )
     @Range(min = 1)
     @Units("/h")
@@ -501,10 +547,10 @@ public interface SlayerConfig extends Config
 
     @ConfigItem(
         keyName = "kphSmokeDevils",
-        name = "Smoke devils",
+        name = "Smoke Devils",
         description = "",
         section = taskSpeedSection,
-        position = 28
+        position = 30
     )
     @Range(min = 1)
     @Units("/h")
@@ -518,7 +564,7 @@ public interface SlayerConfig extends Config
         name = "Hydras",
         description = "",
         section = taskSpeedSection,
-        position = 29
+        position = 31
     )
     @Range(min = 1)
     @Units("/h")
@@ -532,7 +578,7 @@ public interface SlayerConfig extends Config
         name = "Save and recalculate",
         description = "Recalculates the average that Balanced and Fast + Best compare against.",
         section = taskSpeedSection,
-        position = 30
+        position = 32
     )
     default boolean taskChoiceRecalculate()
     {
@@ -543,8 +589,7 @@ public interface SlayerConfig extends Config
         keyName = "nieve",
         name = "Replace Steve with Nieve",
         description = "Model, name, chathead, menu entries and dialogue.",
-        section = nieveSection,
-        position = 0
+        position = 4
     )
     default boolean nieve()
     {
@@ -560,7 +605,7 @@ public interface SlayerConfig extends Config
     )
     default boolean masterRules()
     {
-        return false;
+        return true;
     }
 
     @ConfigItem(
@@ -572,7 +617,7 @@ public interface SlayerConfig extends Config
     )
     default DefaultMaster defaultMaster()
     {
-        return DefaultMaster.NONE;
+        return DefaultMaster.MAZCHNA;
     }
 
     @ConfigItem(
@@ -609,7 +654,7 @@ public interface SlayerConfig extends Config
     )
     default RuleMaster rule1Master()
     {
-        return RuleMaster.KONAR;
+        return RuleMaster.DURADEL;
     }
 
     @ConfigItem(
@@ -621,7 +666,7 @@ public interface SlayerConfig extends Config
     )
     default boolean rule2Enabled()
     {
-        return false;
+        return true;
     }
 
     @Range(min = 1)
@@ -881,6 +926,17 @@ public interface SlayerConfig extends Config
     }
 
     @ConfigItem(
+        keyName = "showTaskArea",
+        name = "Konar task area in chat",
+        description = "",
+        position = 3
+    )
+    default boolean showTaskArea()
+    {
+        return true;
+    }
+
+    @ConfigItem(
         keyName = "taskSorter",
         name = "Sort task list",
         description = "",
@@ -889,7 +945,7 @@ public interface SlayerConfig extends Config
     )
     default boolean taskSorter()
     {
-        return false;
+        return true;
     }
 
     @ConfigItem(

@@ -82,53 +82,60 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
 
         UniqueOddsMode mode = config.taskChoiceOddsMode();
 
+        // The dropdown says "Slayer Unique Roll"; next to his interface the "Slayer" is redundant.
+        String title = mode == UniqueOddsMode.SLAYER_UNIQUE_ROLL ? "Unique Roll" : Text.titleCase(mode);
         panelComponent.getChildren().add(TitleComponent.builder()
-            .text(Text.titleCase(mode) + " per superior")
+            .text(title)
             .build());
 
-        int best = feature.getPickIndex();
-        int width = ComponentConstants.STANDARD_WIDTH;
-        for (int i = 0; i < feature.getChoices().size(); i++)
+        // A title is centered and never wraps, so one wider than the panel is cut off at both ends.
+        int width = Math.max(ComponentConstants.STANDARD_WIDTH,
+            graphics.getFontMetrics().stringWidth(title) + 4 * ComponentConstants.STANDARD_BORDER);
+        for (TaskChoiceOddsFeature.Row row : feature.getOfferRows())
         {
-            TaskChoiceOddsFeature.Choice choice = feature.getChoices().get(i);
-
-            double chance = choice.uniqueTableChance * mode.getPerSuperiorFactor();
-
-            String odds;
-            if (Double.isNaN(chance))
-            {
-                odds = "?";
-            }
-            else if (chance <= 0)
-            {
-                odds = "-";
-            }
-            else
-            {
-                odds = "1 in " + Math.round(1 / chance);
-            }
-            if (choice.uniqueModifierPercent > 0)
-            {
-                odds += " (+" + choice.uniqueModifierPercent + "%)";
-            }
-
-            double hours = feature.estimatedHours(choice);
-            odds += Double.isNaN(hours) ? ", ? min" : ", " + Math.round(hours * 60) + " min";
-
-            // The line would wrap at the standard width, so the panel grows
-            // to its longest one.
-            width = Math.max(width, graphics.getFontMetrics().stringWidth(choice.name + "  " + odds)
-                + 2 * ComponentConstants.STANDARD_BORDER);
-
-            panelComponent.getChildren().add(LineComponent.builder()
-                .left(choice.name)
-                .leftColor(i == best ? Color.GREEN : Color.WHITE)
-                .right(odds)
-                .rightColor(i == best ? Color.GREEN : Color.WHITE)
-                .build());
+            width = Math.max(width, addChoice(graphics, mode, row.choice, row.picked ? Color.GREEN : Color.WHITE));
         }
 
         panelComponent.setPreferredSize(new Dimension(width, 0));
         return super.render(graphics);
+    }
+
+    /**
+     * Adds a task's row and returns the panel width that keeps it on one
+     * line, since it would wrap at the standard width.
+     */
+    private int addChoice(Graphics2D graphics, UniqueOddsMode mode, TaskChoiceOddsFeature.Choice choice, Color color)
+    {
+        double chance = choice.uniqueTableChance * mode.getPerSuperiorFactor();
+
+        String odds;
+        if (Double.isNaN(chance))
+        {
+            odds = "?";
+        }
+        else if (chance <= 0)
+        {
+            odds = "-";
+        }
+        else
+        {
+            odds = "1 in " + Math.round(1 / chance);
+        }
+        if (choice.uniqueModifierPercent > 0)
+        {
+            odds += " (+" + choice.uniqueModifierPercent + "%)";
+        }
+
+        double hours = feature.estimatedHours(choice);
+        odds += Double.isNaN(hours) ? ", ? min" : ", " + Math.round(hours * 60) + " min";
+
+        panelComponent.getChildren().add(LineComponent.builder()
+            .left(choice.name)
+            .leftColor(color)
+            .right(odds)
+            .rightColor(color)
+            .build());
+        return graphics.getFontMetrics().stringWidth(choice.name + "  " + odds)
+            + 2 * ComponentConstants.STANDARD_BORDER;
     }
 }

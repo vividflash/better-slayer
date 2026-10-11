@@ -81,6 +81,15 @@ public enum SlayerMaster
     }
 
     /**
+     * First word of the name, for the overlay's narrow column.
+     */
+    public String getShortName()
+    {
+        int space = displayName.indexOf(' ');
+        return space < 0 ? displayName : displayName.substring(0, space);
+    }
+
+    /**
      * Base points per task, adjusted for the elite diary bonuses the player
      * has ticked in config. Western Provinces takes Nieve from 12 to 15, and
      * Kourend &amp; Kebos takes Konar from 18 to 20.

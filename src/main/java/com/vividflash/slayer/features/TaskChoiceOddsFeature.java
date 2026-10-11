@@ -25,14 +25,22 @@
 package com.vividflash.slayer.features;
 
 import com.vividflash.slayer.SlayerConfig;
+import com.vividflash.slayer.SlayerMaster;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.NPC;
+import net.runelite.api.Player;
 import net.runelite.api.events.ClientTick;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.DBTableID;
@@ -116,6 +124,28 @@ public class TaskChoiceOddsFeature implements Feature
     /** Stands in for a db row the cache would not give up. */
     private static final int UNREADABLE_ROW = -1;
 
+    /** How long after his window was last open a new task still counts as taken from it. */
+    private static final Duration TAKEN_WINDOW = Duration.ofSeconds(10);
+    /** Tiles from Mortimer past which the player has left him. */
+    private static final int LEFT_DISTANCE = 15;
+
+    private static final int BASILISKS_TASK = 43;
+    /** Slayer level of a basilisk knight and of its superior. */
+    private static final int BASILISK_KNIGHT_LEVEL = 60;
+
+    /** A panel row: an offer, or its basilisk knight variant, and whether it carries the pick. */
+    public static class Row
+    {
+        public final Choice choice;
+        public final boolean picked;
+
+        Row(Choice choice, boolean picked)
+        {
+            this.choice = choice;
+            this.picked = picked;
+        }
+    }
+
     /** One offered task, resolved as far as the cache allowed. */
     public static class Choice
     {
@@ -130,9 +160,22 @@ public class TaskChoiceOddsFeature implements Feature
         /** Whether this is one of the multicombat tasks. */
         public final boolean fastTask;
 
+        /**
+         * Slayer task id, -1 when the slot could not be resolved, or a
+         * {@link MortimerTaskGuide} key for a row that is no offer of its own.
+         */
+        public final int taskId;
+
         Choice(String name, double uniqueTableChance, int uniqueModifierPercent,
             double expectedQuantity, int killsPerHour, boolean fastTask)
         {
+            this(-1, name, uniqueTableChance, uniqueModifierPercent, expectedQuantity, killsPerHour, fastTask);
+        }
+
+        Choice(int taskId, String name, double uniqueTableChance, int uniqueModifierPercent,
+            double expectedQuantity, int killsPerHour, boolean fastTask)
+        {
+            this.taskId = taskId;
             this.fastTask = fastTask;
             this.name = name;
             this.uniqueTableChance = uniqueTableChance;
@@ -158,12 +201,26 @@ public class TaskChoiceOddsFeature implements Feature
     private TaskChoiceOddsOverlay overlay;
 
     @Inject
+    private TaskChoiceGuideOverlay guideOverlay;
+
+    @Inject
     private SlayerConfig config;
 
     @Inject
     private ConfigManager configManager;
 
+    @Inject
+    private MasterRulesFeature masterRulesFeature;
+
     private final List<Choice> choices = new ArrayList<>();
+
+    /** The offers as his window last showed them, kept past its closing. */
+    private List<Choice> lastOffered = new ArrayList<>();
+    private Instant lastOpen = Instant.EPOCH;
+    /** The offer the player took, for the area panel to keep showing. */
+    private Choice taken;
+    /** When the player left Mortimer with that task; null while still beside him. */
+    private Instant leftAt;
 
     /** The best option's name widget, once found in the open interface. */
     private Widget bestName;
@@ -178,6 +235,7 @@ public class TaskChoiceOddsFeature implements Feature
         configManager.setConfiguration(CONFIG_GROUP, RECALCULATE_KEY, false);
         eventBus.register(this);
         overlayManager.add(overlay);
+        overlayManager.add(guideOverlay);
         clientThread.invokeLater(this::refresh);
     }
 
@@ -185,7 +243,10 @@ public class TaskChoiceOddsFeature implements Feature
     public void shutDown()
     {
         overlayManager.remove(overlay);
+        overlayManager.remove(guideOverlay);
         choices.clear();
+        lastOffered = new ArrayList<>();
+        taken = null;
         eventBus.unregister(this);
         configManager.setConfiguration(CONFIG_GROUP, RECALCULATE_KEY, false);
     }
@@ -198,9 +259,59 @@ public class TaskChoiceOddsFeature implements Feature
     /** Index into {@link #getChoices()} of the configured mode's pick, or -1. */
     public int getPickIndex()
     {
-        return TaskPickScorer.pick(choices, config.taskChoicePickMode(),
+        List<Choice> scored = choices;
+        if (config.basiliskKnightsForPick())
+        {
+            scored = new ArrayList<>();
+            for (Choice choice : choices)
+            {
+                Choice knights = knightsVariant(choice);
+                scored.add(knights != null ? knights : choice);
+            }
+        }
+        return TaskPickScorer.pick(scored, config.taskChoicePickMode(),
             client.getVarpValue(VarPlayerID.SLAYER_MORTIMER_TASKS_COMPLETED),
             config.taskChoiceOverhead(), baseline());
+    }
+
+    /** The offered tasks as panel rows, the pick marked. */
+    public List<Row> getOfferRows()
+    {
+        List<Row> rows = new ArrayList<>();
+        int best = getPickIndex();
+        for (int i = 0; i < choices.size(); i++)
+        {
+            addRows(rows, choices.get(i), i == best);
+        }
+        return rows;
+    }
+
+    /**
+     * The task the player took, as panel rows, while the area panel is still
+     * to show it. The time runs from when the player leaves Mortimer.
+     */
+    public List<Row> getTakenRows()
+    {
+        List<Row> rows = new ArrayList<>();
+        if (taken != null && (leftAt == null
+            || Instant.now().isBefore(leftAt.plusSeconds(Math.max(10, config.taskChoiceAreaRetain())))))
+        {
+            // A lone row needs no mark; of the two basilisk rows one does.
+            addRows(rows, taken, knightsVariant(taken) != null);
+        }
+        return rows;
+    }
+
+    /** Of a basilisk offer's two rows, the pick goes to the one it was worked out from. */
+    private void addRows(List<Row> rows, Choice choice, boolean picked)
+    {
+        Choice knights = knightsVariant(choice);
+        boolean knightsPicked = knights != null && config.basiliskKnightsForPick();
+        rows.add(new Row(choice, picked && !knightsPicked));
+        if (knights != null)
+        {
+            rows.add(new Row(knights, picked && knightsPicked));
+        }
     }
 
     /** Hours the choice is expected to take, or NaN when its amount is unreadable. */
@@ -208,6 +319,23 @@ public class TaskChoiceOddsFeature implements Feature
     {
         return TaskPickScorer.hours(choice.expectedQuantity, choice.killsPerHour,
             config.taskChoiceOverhead());
+    }
+
+    /**
+     * A basilisk task can be spent on basilisk knights, whose superior rolls
+     * at their own slayer level. Returns that variant of a basilisk offer for
+     * display beside it, or null for any other task. The pick goes by it
+     * only when the player has ticked that.
+     */
+    public Choice knightsVariant(Choice choice)
+    {
+        if (choice.taskId != BASILISKS_TASK)
+        {
+            return null;
+        }
+        return new Choice(MortimerTaskGuide.BASILISK_KNIGHTS, "Basilisk Knights",
+            baseUniqueChanceAt(BASILISK_KNIGHT_LEVEL) * (1 + choice.uniqueModifierPercent / 100.0),
+            choice.uniqueModifierPercent, choice.expectedQuantity, config.kphBasiliskKnights(), false);
     }
 
     /** The stored long-run rate, or the bundled one when none is stored. */
@@ -235,6 +363,12 @@ public class TaskChoiceOddsFeature implements Feature
     @Subscribe
     public void onVarbitChanged(VarbitChanged event)
     {
+        int varp = event.getVarpId();
+        if (varp == VarPlayerID.SLAYER_TARGET || varp == VarPlayerID.SLAYER_COUNT)
+        {
+            noteTakenTask();
+        }
+
         int id = event.getVarbitId();
         for (int slot = 0; slot < CHOICE_TASK_VARBITS.length; slot++)
         {
@@ -245,6 +379,70 @@ public class TaskChoiceOddsFeature implements Feature
                 refresh();
                 return;
             }
+        }
+    }
+
+    /**
+     * A task that starts right after his window was open, and is one of the
+     * offers it showed, is the offer the player took. It is dropped again
+     * once that task is finished or replaced.
+     */
+    private void noteTakenTask()
+    {
+        int count = client.getVarpValue(VarPlayerID.SLAYER_COUNT);
+        int target = client.getVarpValue(VarPlayerID.SLAYER_TARGET);
+        if (taken != null && (count <= 0 || target != taken.taskId))
+        {
+            taken = null;
+        }
+        if (taken != null || count <= 0 || Instant.now().isAfter(lastOpen.plus(TAKEN_WINDOW)))
+        {
+            return;
+        }
+        for (Choice choice : lastOffered)
+        {
+            if (choice.taskId == target)
+            {
+                taken = choice;
+                leftAt = null;
+                return;
+            }
+        }
+    }
+
+    @Subscribe
+    public void onGameTick(GameTick event)
+    {
+        if (taken != null && leftAt == null && !isMortimerNear())
+        {
+            leftAt = Instant.now();
+        }
+    }
+
+    private boolean isMortimerNear()
+    {
+        Player player = client.getLocalPlayer();
+        if (player == null)
+        {
+            return false;
+        }
+        for (Map.Entry<NPC, SlayerMaster> entry : masterRulesFeature.getNearbyMasters().entrySet())
+        {
+            if (entry.getValue() == SlayerMaster.MORTIMER
+                && entry.getKey().getWorldLocation().distanceTo(player.getWorldLocation()) <= LEFT_DISTANCE)
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Subscribe
+    public void onGameStateChanged(GameStateChanged event)
+    {
+        if (event.getGameState() == GameState.LOGIN_SCREEN)
+        {
+            taken = null;
         }
     }
 
@@ -287,9 +485,11 @@ public class TaskChoiceOddsFeature implements Feature
                 int taskRow = (Integer) client.getDBTableField(row, DBTableID.SlayerMasterTask.COL_TASK, 0)[0];
                 int taskId = (Integer) client.getDBTableField(taskRow, DBTableID.SlayerTask.COL_ID, 0)[0];
                 double quantity = amount(row, taskRow);
-                int kph = MortimerTaskSpeed.killsPerHour(taskId, config);
+                boolean knights = taskId == BASILISKS_TASK && config.basiliskKnightsForPick();
+                int kph = knights ? config.kphBasiliskKnights() : MortimerTaskSpeed.killsPerHour(taskId, config);
                 weights[i] = (Integer) client.getDBTableField(row, DBTableID.SlayerMasterTask.COL_WEIGHT, 0)[0];
-                rolls[i] = TaskPickScorer.rolls(quantity, baseUniqueChance(taskRow));
+                rolls[i] = TaskPickScorer.rolls(quantity,
+                    knights ? baseUniqueChanceAt(BASILISK_KNIGHT_LEVEL) : baseUniqueChance(taskRow));
                 hours[i] = TaskPickScorer.hours(quantity, kph, config.taskChoiceOverhead());
             }
 
@@ -356,7 +556,7 @@ public class TaskChoiceOddsFeature implements Feature
         // The odds are resolved on their own, so a task whose name is readable
         // keeps it even when the rest of its row is not.
         int kph = MortimerTaskSpeed.killsPerHour(taskId, config);
-        return new Choice(name, uniqueTableChance(taskRow, uniquePercent), uniquePercent,
+        return new Choice(taskId, name, uniqueTableChance(taskRow, uniquePercent), uniquePercent,
             expectedQuantity(taskRow, quantityDelta), kph, MortimerTaskSpeed.isFastTask(taskId));
     }
 
@@ -513,7 +713,12 @@ public class TaskChoiceOddsFeature implements Feature
      */
     private double baseUniqueChance(int taskRow)
     {
-        int scaled = slayerLevel(taskRow) + 55;
+        return baseUniqueChanceAt(slayerLevel(taskRow));
+    }
+
+    private static double baseUniqueChanceAt(int slayerLevel)
+    {
+        int scaled = slayerLevel + 55;
         int denominator = 200 - scaled * scaled / 125;
         return denominator <= 1 ? 1 : 1.0 / denominator;
     }
@@ -535,6 +740,12 @@ public class TaskChoiceOddsFeature implements Feature
         {
             bestName = null;
             return;
+        }
+
+        lastOpen = Instant.now();
+        if (!choices.isEmpty() && !lastOffered.equals(choices))
+        {
+            lastOffered = new ArrayList<>(choices);
         }
 
         if (!config.taskChoiceOddsDisplay().showsHighlight())

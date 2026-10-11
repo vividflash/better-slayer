@@ -43,7 +43,7 @@ final class MortimerTaskSpeed
      * Long-run unique table rolls per hour with three choices, worked out from
      * the table below at the default overhead by {@link TaskPickScorer#baseline}.
      */
-    static final double BASELINE = 0.045938708571972985;
+    static final double BASELINE = 0.04587723422611158;
 
     private static final Map<Integer, Integer> KILLS_PER_HOUR = new HashMap<>();
 
@@ -61,13 +61,13 @@ final class MortimerTaskSpeed
         KILLS_PER_HOUR.put(128, 455); // gryphons
         KILLS_PER_HOUR.put(50, 400); // jellies
         KILLS_PER_HOUR.put(126, 400); // custodian stalkers
-        KILLS_PER_HOUR.put(36, 210); // turoth
+        KILLS_PER_HOUR.put(36, 183); // turoth
         KILLS_PER_HOUR.put(122, 365); // warped creatures
         KILLS_PER_HOUR.put(80, 455); // cave horrors
         KILLS_PER_HOUR.put(41, 390); // aberrant spectres
         KILLS_PER_HOUR.put(111, 815); // wyrms
         KILLS_PER_HOUR.put(49, 800); // dust devils
-        KILLS_PER_HOUR.put(45, 205); // kurask
+        KILLS_PER_HOUR.put(45, 180); // kurask
         KILLS_PER_HOUR.put(131, 85); // venators
         KILLS_PER_HOUR.put(46, 285); // gargoyles
         KILLS_PER_HOUR.put(129, 165); // aquanites

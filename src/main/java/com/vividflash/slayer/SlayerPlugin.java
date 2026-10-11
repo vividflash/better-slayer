@@ -28,6 +28,7 @@ import com.google.inject.Provides;
 import com.vividflash.slayer.features.Feature;
 import com.vividflash.slayer.features.MasterRulesFeature;
 import com.vividflash.slayer.features.NieveInsteadOfSteveFeature;
+import com.vividflash.slayer.features.TaskAreaFeature;
 import com.vividflash.slayer.features.TaskChoiceOddsFeature;
 import com.vividflash.slayer.features.TaskSorterFeature;
 import java.awt.Color;
@@ -56,11 +57,10 @@ public class SlayerPlugin extends Plugin
     private static final String LAST_SEEN_VERSION_KEY = "lastSeenVersion";
 
     /** The release the one-time notice below belongs to, not the packaged version. */
-    private static final String VERSION = "1.3";
+    private static final String VERSION = "1.4";
     private static final String UPDATE_MESSAGE =
-        "Patch 1.3; Added Mortimer modes: Fastest, Fast + Best, Balanced, Max chance, "
-            + "and Auto(Fast + Best until 50 tasks, afterwards Balanced). "
-            + "K/H are adjustable in settings";
+        "Patch 1.4; Mortimer shows where to go for each task, "
+            + "Konar tells you the task area in chat";
 
     /** Dark red for the one-time notice, legible on either chatbox background. */
     private static final Color UPDATE_MESSAGE_COLOR = new Color(0x8B0000);
@@ -78,6 +78,9 @@ public class SlayerPlugin extends Plugin
     private MasterRulesFeature masterRulesFeature;
 
     @Inject
+    private TaskAreaFeature taskAreaFeature;
+
+    @Inject
     private TaskSorterFeature taskSorterFeature;
 
     @Inject
@@ -90,6 +93,7 @@ public class SlayerPlugin extends Plugin
     {
         features.add(nieveInsteadOfSteveFeature);
         features.add(masterRulesFeature);
+        features.add(taskAreaFeature);
         features.add(taskSorterFeature);
         features.add(taskChoiceOddsFeature);
         features.forEach(Feature::startUp);
