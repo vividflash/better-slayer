@@ -25,23 +25,31 @@
 package com.vividflash.slayer.features;
 
 import com.vividflash.slayer.SlayerConfig;
+import java.util.HashSet;
+import java.util.Set;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.MessageNode;
+import net.runelite.api.NPC;
 import net.runelite.api.events.BeforeRender;
 import net.runelite.api.events.ChatMessage;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.MenuEntryAdded;
+import net.runelite.api.events.MenuOptionClicked;
+import net.runelite.api.events.NpcDespawned;
+import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarbitID;
 import net.runelite.api.widgets.Widget;
 import net.runelite.api.widgets.WidgetModelType;
+import net.runelite.api.widgets.WidgetUtil;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
@@ -61,6 +69,7 @@ import net.runelite.client.util.Text;
  * written back when the feature is switched off, when the plugin stops and
  * when the session ends.
  */
+@Slf4j
 @Singleton
 public class NieveInsteadOfSteveFeature implements Feature
 {
@@ -81,6 +90,22 @@ public class NieveInsteadOfSteveFeature implements Feature
      */
     private static final int NIEVE_CHATHEAD = NpcID.SLAYER_MASTER_NIEVE;
     private static final int STEVE_CHATHEAD = NpcID.SLAYER_MASTER_STEVE;
+
+    /**
+     * The slayer master can spawn under the base id or either shape's id
+     * (Nieve's while the swap is pinned), so all three count, as does the
+     * Steve guarding the wyvern cave.
+     */
+    private static final int MASTER_BASE_NPC = NpcID.SLAYER_MASTER_6;
+    private static final int STEVE_NPC = NpcID.SLAYER_MASTER_STEVE;
+    private static final int NIEVE_NPC = NpcID.SLAYER_MASTER_NIEVE;
+    private static final int WYVERN_CAVE_STEVE_NPC = NpcID.WYVERN_CAVE_STEVE;
+
+    /** Game ticks without an open dialogue before a contact counts as over. */
+    private static final int CONTACT_IDLE_TICKS = 3;
+
+    /** Value of the current-task master varbit while Nieve or Steve assigned the task. */
+    private static final int TASK_MASTER_STEVE = 6;
 
     /** How far ahead of a contact row's label its chathead can sit. */
     private static final int CONTACT_CHATHEAD_LOOKBACK = 2;
@@ -186,11 +211,37 @@ public class NieveInsteadOfSteveFeature implements Feature
     /** Set between a write of our own and the event that carries it back. */
     private boolean echoPending;
 
+    /** Steve npcs currently in the scene, so spawn and despawn order cannot unbalance a count. */
+    private final Set<NPC> steveNpcs = new HashSet<>();
+
+    /** Steve is in the scene, so he can be talked to in person. */
+    private boolean steveNearby;
+
+    /** The current slayer task was assigned by Steve, so the gems and rings reach him. */
+    private boolean steveTask;
+
+    /**
+     * An NPC Contact row was clicked and the conversation has not ended yet.
+     * A cancelled contact leaves this set, which only costs the dialogue
+     * lookups until the next logout.
+     */
+    private boolean contactPending;
+
+    /** A dialogue has opened since {@link #contactPending} was set. */
+    private boolean contactDialogueSeen;
+
+    /** One of the three dialogue groups was open on the last frame checked. */
+    private boolean dialogueOpen;
+
+    /** Ticks in a row with no dialogue open after the contact's conversation. */
+    private int contactIdleTicks;
+
     @Override
     public void startUp()
     {
         eventBus.register(this);
         clientThread.invokeLater(this::reconcileVarbit);
+        clientThread.invokeLater(this::refreshSteveState);
     }
 
     @Override
@@ -279,9 +330,92 @@ public class NieveInsteadOfSteveFeature implements Feature
         pin();
     }
 
+    /** Re-reads the task master and the npcs already standing in the scene. */
+    private void refreshSteveState()
+    {
+        if (client.getGameState() != GameState.LOGGED_IN)
+        {
+            return;
+        }
+
+        steveTask = client.getVarbitValue(VarbitID.SLAYER_MASTER) == TASK_MASTER_STEVE;
+
+        steveNpcs.clear();
+        for (NPC npc : client.getTopLevelWorldView().npcs())
+        {
+            if (isSteve(npc.getId()))
+            {
+                steveNpcs.add(npc);
+            }
+        }
+        steveNearby = !steveNpcs.isEmpty();
+        log.debug("Steve state refreshed: nearby={} task={}", steveNearby, steveTask);
+    }
+
+    private static boolean isSteve(int npcId)
+    {
+        return npcId == MASTER_BASE_NPC || npcId == STEVE_NPC || npcId == NIEVE_NPC
+            || npcId == WYVERN_CAVE_STEVE_NPC;
+    }
+
+    private void clearSteveState()
+    {
+        steveNpcs.clear();
+        steveNearby = false;
+        steveTask = false;
+        contactPending = false;
+        contactDialogueSeen = false;
+        dialogueOpen = false;
+        contactIdleTicks = 0;
+    }
+
+    @Subscribe
+    public void onNpcSpawned(NpcSpawned event)
+    {
+        NPC npc = event.getNpc();
+        if (isSteve(npc.getId()))
+        {
+            steveNpcs.add(npc);
+            steveNearby = true;
+            log.debug("Steve spawned ({}, shown as {}), nearby", npc.getId(),
+                npc.getTransformedComposition() == null ? -1 : npc.getTransformedComposition().getId());
+        }
+    }
+
+    @Subscribe
+    public void onNpcDespawned(NpcDespawned event)
+    {
+        NPC npc = event.getNpc();
+        if (isSteve(npc.getId()))
+        {
+            steveNpcs.remove(npc);
+            steveNearby = !steveNpcs.isEmpty();
+            log.debug("Steve despawned ({}), nearby={}", npc.getId(), steveNearby);
+        }
+    }
+
+    @Subscribe
+    public void onMenuOptionClicked(MenuOptionClicked event)
+    {
+        if (WidgetUtil.componentToInterface(event.getParam1()) == InterfaceID.LUNAR_CONTACT_NPC)
+        {
+            contactPending = true;
+            contactDialogueSeen = false;
+            contactIdleTicks = 0;
+            log.debug("NPC Contact clicked, dialogue gate open");
+        }
+    }
+
     @Subscribe
     public void onVarbitChanged(VarbitChanged event)
     {
+        if (event.getVarbitId() == VarbitID.SLAYER_MASTER)
+        {
+            steveTask = event.getValue() == TASK_MASTER_STEVE;
+            log.debug("Task master {}, steveTask={}", event.getValue(), steveTask);
+            return;
+        }
+
         if (event.getVarbitId() != VarbitID.MM2_SLAYER_MASTER)
         {
             return;
@@ -294,6 +428,25 @@ public class NieveInsteadOfSteveFeature implements Feature
     @Subscribe
     public void onGameTick(GameTick event)
     {
+        // A short gap between dialogue pages must not end the contact, so it
+        // only counts as over after a few ticks with nothing open.
+        if (contactPending && contactDialogueSeen)
+        {
+            contactIdleTicks = dialogueOpen ? 0 : contactIdleTicks + 1;
+            if (contactIdleTicks >= CONTACT_IDLE_TICKS)
+            {
+                contactPending = false;
+                contactDialogueSeen = false;
+                contactIdleTicks = 0;
+                log.debug("NPC Contact conversation over, dialogue gate closed");
+            }
+        }
+
+        if (!config.nieve())
+        {
+            return;
+        }
+
         // Backstop in case the varbit change never surfaces as its own event.
         reconcileVarbit();
     }
@@ -301,11 +454,43 @@ public class NieveInsteadOfSteveFeature implements Feature
     @Subscribe
     public void onBeforeRender(BeforeRender event)
     {
-        dressDialogue();
-        dressPlayerDialogue();
-        dressChatOptions();
-        dressContactList();
-        rewriteGrave();
+        // Steve only speaks in person, through a gem or ring tied to his task,
+        // or through NPC Contact, so the dialogue lookups wait for one of those.
+        // A group that is not loaded has no root widget, so one lookup each
+        // keeps the per-frame cost flat while none of these are open.
+        if (steveNearby || steveTask || contactPending)
+        {
+            boolean left = client.getWidget(InterfaceID.ChatLeft.UNIVERSE) != null;
+            boolean right = client.getWidget(InterfaceID.ChatRight.UNIVERSE) != null;
+            boolean menu = client.getWidget(InterfaceID.Chatmenu.UNIVERSE) != null;
+            if (left)
+            {
+                dressDialogue();
+            }
+            if (right)
+            {
+                dressPlayerDialogue();
+            }
+            if (menu)
+            {
+                dressChatOptions();
+            }
+
+            dialogueOpen = left || right || menu;
+            if (contactPending && dialogueOpen && !contactDialogueSeen)
+            {
+                contactDialogueSeen = true;
+                log.debug("NPC Contact dialogue opened");
+            }
+        }
+        if (client.getWidget(InterfaceID.LunarContactNpc.UNIVERSE) != null)
+        {
+            dressContactList();
+        }
+        if (client.getWidget(InterfaceID.Messagescroll2.MESSAGESCROLL2_CLOSE) != null)
+        {
+            rewriteGrave();
+        }
     }
 
     @Subscribe
@@ -313,8 +498,14 @@ public class NieveInsteadOfSteveFeature implements Feature
     {
         switch (event.getGameState())
         {
+            case LOADING:
+                // The scene reload fires every spawn again.
+                steveNpcs.clear();
+                steveNearby = false;
+                break;
             case LOGIN_SCREEN:
             case HOPPING:
+                clearSteveState();
                 // Give the varbit back and forget it. A value from a finished
                 // session says nothing about the next one.
                 unpin();
@@ -322,6 +513,7 @@ public class NieveInsteadOfSteveFeature implements Feature
                 break;
             case LOGGED_IN:
                 clientThread.invokeLater(this::reconcileVarbit);
+                clientThread.invokeLater(this::refreshSteveState);
                 break;
             default:
                 break;

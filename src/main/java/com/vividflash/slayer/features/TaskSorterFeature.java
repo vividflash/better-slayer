@@ -68,6 +68,9 @@ public class TaskSorterFeature implements Feature
     /** Scrollable task list on the Slayer Rewards "Tasks" tab. */
     private static final int REWARDS_TASKS_LIST = InterfaceID.SlayerRewards.TASKS_CONTENT_SCROLLABLE;
 
+    /** Set when a rewards interface group loads; cleared once both are gone. */
+    private boolean rewardsLoaded;
+
     /**
      * Under three rows there is no second gap to check the first one against,
      * so the row pitch proves nothing and the container is left alone.
@@ -102,8 +105,13 @@ public class TaskSorterFeature implements Feature
     public void onWidgetLoaded(WidgetLoaded event)
     {
         int group = event.getGroupId();
-        if ((group != InterfaceID.SLAYER_REWARDS_TASK_LIST && group != InterfaceID.SLAYER_REWARDS)
-            || !config.taskSorter())
+        if (group != InterfaceID.SLAYER_REWARDS_TASK_LIST && group != InterfaceID.SLAYER_REWARDS)
+        {
+            return;
+        }
+
+        rewardsLoaded = true;
+        if (!config.taskSorter())
         {
             return;
         }
@@ -118,10 +126,19 @@ public class TaskSorterFeature implements Feature
         // The rewards interface swaps tabs and rebuilds rows via scripts with
         // no further WidgetLoaded, so keep whichever list is open sorted from
         // here.
-        if (config.taskSorter())
+        if (!rewardsLoaded || !config.taskSorter())
         {
-            sortAllLists();
+            return;
         }
+
+        if (client.getWidget(InterfaceID.SlayerRewards.UNIVERSE) == null
+            && client.getWidget(InterfaceID.SlayerRewardsTaskList.UNIVERSE) == null)
+        {
+            rewardsLoaded = false;
+            return;
+        }
+
+        sortAllLists();
     }
 
     @Subscribe

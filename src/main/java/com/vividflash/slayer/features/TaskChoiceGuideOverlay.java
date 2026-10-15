@@ -71,6 +71,11 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             return null;
         }
 
+        if (feature.getChoices().isEmpty() && !feature.isTakenTaskActive())
+        {
+            return null;
+        }
+
         // With his window closed, the task just taken stays up for a while.
         Widget content = client.getWidget(TaskChoiceOddsFeature.TASK_CHOICE_CONTENT);
         boolean open = content != null && !content.isHidden() && !feature.getChoices().isEmpty();

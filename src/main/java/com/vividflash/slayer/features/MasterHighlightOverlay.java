@@ -65,6 +65,11 @@ public class MasterHighlightOverlay extends Overlay
             return null;
         }
 
+        if (feature.getNearbyMasters().isEmpty())
+        {
+            return null;
+        }
+
         MasterRulesFeature.Recommendation recommendation = feature.getRecommendation();
         SlayerMaster recommended = recommendation.master;
         if (recommended == null)

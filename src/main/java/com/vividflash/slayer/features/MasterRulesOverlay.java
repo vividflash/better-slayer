@@ -38,7 +38,8 @@ import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
 /**
- * Point-projection panel shown while a slayer master is nearby. Its lines,
+ * Point-projection panel shown while a slayer master is nearby, unless set
+ * to hide during a task taken from Mortimer. Its lines,
  * up to four, are the next task number (Mortimer's own task count when he is the
  * master to use), which master to take it from, current points, and points
  * after the next task.
@@ -48,19 +49,22 @@ public class MasterRulesOverlay extends OverlayPanel
 {
     private final SlayerConfig config;
     private final MasterRulesFeature feature;
+    private final TaskChoiceOddsFeature taskChoiceOddsFeature;
 
     @Inject
-    MasterRulesOverlay(SlayerConfig config, MasterRulesFeature feature)
+    MasterRulesOverlay(SlayerConfig config, MasterRulesFeature feature, TaskChoiceOddsFeature taskChoiceOddsFeature)
     {
         this.config = config;
         this.feature = feature;
+        this.taskChoiceOddsFeature = taskChoiceOddsFeature;
         setPosition(OverlayPosition.TOP_LEFT);
     }
 
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!config.masterRules() || !config.showOverlay() || feature.getNearbyMasters().isEmpty())
+        if (!config.masterRules() || !config.showOverlay() || feature.getNearbyMasters().isEmpty()
+            || (config.hideOverlayDuringMortimerTask() && taskChoiceOddsFeature.isTakenTaskActive()))
         {
             return null;
         }

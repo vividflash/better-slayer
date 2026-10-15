@@ -224,6 +224,8 @@ public class TaskChoiceOddsFeature implements Feature
 
     /** The best option's name widget, once found in the open interface. */
     private Widget bestName;
+    /** Set when his interface loads; cleared once its widgets are gone. */
+    private boolean choiceInterfaceLoaded;
     /** The color that widget had before it was marked. */
     private int bestNameColor;
 
@@ -284,6 +286,12 @@ public class TaskChoiceOddsFeature implements Feature
             addRows(rows, choices.get(i), i == best);
         }
         return rows;
+    }
+
+    /** Whether the current task is one taken from his window this session. */
+    public boolean isTakenTaskActive()
+    {
+        return taken != null;
     }
 
     /**
@@ -511,6 +519,7 @@ public class TaskChoiceOddsFeature implements Feature
     {
         if (event.getGroupId() == InterfaceID.SLAYER_TASK_CHOICE)
         {
+            choiceInterfaceLoaded = true;
             clientThread.invokeLater(this::refresh);
         }
     }
@@ -735,7 +744,16 @@ public class TaskChoiceOddsFeature implements Feature
     @Subscribe
     public void onClientTick(ClientTick event)
     {
+        if (!choiceInterfaceLoaded)
+        {
+            return;
+        }
+
         Widget content = client.getWidget(TASK_CHOICE_CONTENT);
+        if (content == null)
+        {
+            choiceInterfaceLoaded = false;
+        }
         if (content == null || content.isHidden())
         {
             bestName = null;

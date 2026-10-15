@@ -38,7 +38,7 @@ public interface SlayerConfig extends Config
     @ConfigSection(
         name = "Slayer Master Rules",
         description = "",
-        position = 2,
+        position = 30,
         closedByDefault = true
     )
     String masterRulesSection = "masterRulesSection";
@@ -46,21 +46,21 @@ public interface SlayerConfig extends Config
     @ConfigSection(
         name = "Task Sorter",
         description = "",
-        position = 5
+        position = 60
     )
     String taskSorterSection = "taskSorterSection";
 
     @ConfigSection(
         name = "Mortimer Task Choice",
         description = "",
-        position = 0
+        position = 10
     )
     String taskChoiceSection = "taskChoiceSection";
 
     @ConfigSection(
         name = "Mortimer Task Speeds",
         description = "Kill speeds the pick is worked out from.",
-        position = 1,
+        position = 20,
         closedByDefault = true
     )
     String taskSpeedSection = "taskSpeedSection";
@@ -70,7 +70,7 @@ public interface SlayerConfig extends Config
         name = "Show odds",
         description = "Panel: each option's odds and estimated time. Highlight: colors the picked option in his list.",
         section = taskChoiceSection,
-        position = 0
+        position = 10
     )
     default TaskChoiceDisplay taskChoiceOddsDisplay()
     {
@@ -82,7 +82,7 @@ public interface SlayerConfig extends Config
         name = "Odds for",
         description = "Slayer unique roll counts every roll of a unique table. Unique item leaves out the nothing outcome.",
         section = taskChoiceSection,
-        position = 1
+        position = 20
     )
     default UniqueOddsMode taskChoiceOddsMode()
     {
@@ -94,7 +94,7 @@ public interface SlayerConfig extends Config
         name = "Pick",
         description = "Fast + Best: fastest, unless a boosted multicombat task is worth more per hour. Balanced: most unique rolls per hour. Max chance: best odds per superior. Auto: Fast + Best until 50 Mortimer tasks, then Balanced.",
         section = taskChoiceSection,
-        position = 2
+        position = 30
     )
     default TaskPickMode taskChoicePickMode()
     {
@@ -106,7 +106,7 @@ public interface SlayerConfig extends Config
         name = "Show task areas",
         description = "Best area, fastest way there and kill method for each offered task.",
         section = taskChoiceSection,
-        position = 3
+        position = 40
     )
     default boolean taskChoiceShowAreas()
     {
@@ -118,7 +118,7 @@ public interface SlayerConfig extends Config
         name = "Retain area duration",
         description = "Counted from when you leave Mortimer.",
         section = taskChoiceSection,
-        position = 4
+        position = 50
     )
     @Range(min = 10)
     @Units(Units.SECONDS)
@@ -132,7 +132,7 @@ public interface SlayerConfig extends Config
         name = "Overhead per task",
         description = "Time added per task for travel, banking and getting the next one.",
         section = taskSpeedSection,
-        position = 0
+        position = 10
     )
     @Range(min = 0)
     @Units(Units.MINUTES)
@@ -146,7 +146,7 @@ public interface SlayerConfig extends Config
         name = "Crawling Hands",
         description = "",
         section = taskSpeedSection,
-        position = 1
+        position = 20
     )
     @Range(min = 1)
     @Units("/h")
@@ -160,7 +160,7 @@ public interface SlayerConfig extends Config
         name = "Cave Crawlers",
         description = "",
         section = taskSpeedSection,
-        position = 2
+        position = 30
     )
     @Range(min = 1)
     @Units("/h")
@@ -174,7 +174,7 @@ public interface SlayerConfig extends Config
         name = "Banshees",
         description = "",
         section = taskSpeedSection,
-        position = 3
+        position = 40
     )
     @Range(min = 1)
     @Units("/h")
@@ -188,7 +188,7 @@ public interface SlayerConfig extends Config
         name = "Rockslugs",
         description = "",
         section = taskSpeedSection,
-        position = 4
+        position = 50
     )
     @Range(min = 1)
     @Units("/h")
@@ -202,7 +202,7 @@ public interface SlayerConfig extends Config
         name = "Cockatrice",
         description = "",
         section = taskSpeedSection,
-        position = 5
+        position = 60
     )
     @Range(min = 1)
     @Units("/h")
@@ -216,7 +216,7 @@ public interface SlayerConfig extends Config
         name = "Pyrefiends",
         description = "",
         section = taskSpeedSection,
-        position = 6
+        position = 70
     )
     @Range(min = 1)
     @Units("/h")
@@ -230,7 +230,7 @@ public interface SlayerConfig extends Config
         name = "Infernal Mages",
         description = "",
         section = taskSpeedSection,
-        position = 7
+        position = 80
     )
     @Range(min = 1)
     @Units("/h")
@@ -244,7 +244,7 @@ public interface SlayerConfig extends Config
         name = "Basilisks",
         description = "",
         section = taskSpeedSection,
-        position = 8
+        position = 90
     )
     @Range(min = 1)
     @Units("/h")
@@ -258,7 +258,7 @@ public interface SlayerConfig extends Config
         name = "Basilisk Knights",
         description = "",
         section = taskSpeedSection,
-        position = 9
+        position = 100
     )
     @Range(min = 1)
     @Units("/h")
@@ -272,7 +272,7 @@ public interface SlayerConfig extends Config
         name = "Pick by Basilisk Knights",
         description = "",
         section = taskSpeedSection,
-        position = 10
+        position = 110
     )
     default boolean basiliskKnightsForPick()
     {
@@ -284,7 +284,7 @@ public interface SlayerConfig extends Config
         name = "Bloodveld",
         description = "",
         section = taskSpeedSection,
-        position = 11
+        position = 120
     )
     @Range(min = 1)
     @Units("/h")
@@ -298,7 +298,7 @@ public interface SlayerConfig extends Config
         name = "Gryphons",
         description = "",
         section = taskSpeedSection,
-        position = 12
+        position = 130
     )
     @Range(min = 1)
     @Units("/h")
@@ -312,7 +312,7 @@ public interface SlayerConfig extends Config
         name = "Jellies",
         description = "",
         section = taskSpeedSection,
-        position = 13
+        position = 140
     )
     @Range(min = 1)
     @Units("/h")
@@ -326,7 +326,7 @@ public interface SlayerConfig extends Config
         name = "Custodian Stalkers",
         description = "",
         section = taskSpeedSection,
-        position = 14
+        position = 150
     )
     @Range(min = 1)
     @Units("/h")
@@ -340,7 +340,7 @@ public interface SlayerConfig extends Config
         name = "Turoth",
         description = "",
         section = taskSpeedSection,
-        position = 15
+        position = 160
     )
     @Range(min = 1)
     @Units("/h")
@@ -354,7 +354,7 @@ public interface SlayerConfig extends Config
         name = "Warped Creatures",
         description = "",
         section = taskSpeedSection,
-        position = 16
+        position = 170
     )
     @Range(min = 1)
     @Units("/h")
@@ -368,7 +368,7 @@ public interface SlayerConfig extends Config
         name = "Cave Horrors",
         description = "",
         section = taskSpeedSection,
-        position = 17
+        position = 180
     )
     @Range(min = 1)
     @Units("/h")
@@ -382,7 +382,7 @@ public interface SlayerConfig extends Config
         name = "Aberrant Spectres",
         description = "",
         section = taskSpeedSection,
-        position = 18
+        position = 190
     )
     @Range(min = 1)
     @Units("/h")
@@ -396,7 +396,7 @@ public interface SlayerConfig extends Config
         name = "Wyrms",
         description = "",
         section = taskSpeedSection,
-        position = 19
+        position = 200
     )
     @Range(min = 1)
     @Units("/h")
@@ -410,7 +410,7 @@ public interface SlayerConfig extends Config
         name = "Dust Devils",
         description = "",
         section = taskSpeedSection,
-        position = 20
+        position = 210
     )
     @Range(min = 1)
     @Units("/h")
@@ -424,7 +424,7 @@ public interface SlayerConfig extends Config
         name = "Kurask",
         description = "",
         section = taskSpeedSection,
-        position = 21
+        position = 220
     )
     @Range(min = 1)
     @Units("/h")
@@ -438,7 +438,7 @@ public interface SlayerConfig extends Config
         name = "Venators",
         description = "",
         section = taskSpeedSection,
-        position = 22
+        position = 230
     )
     @Range(min = 1)
     @Units("/h")
@@ -452,7 +452,7 @@ public interface SlayerConfig extends Config
         name = "Gargoyles",
         description = "",
         section = taskSpeedSection,
-        position = 23
+        position = 240
     )
     @Range(min = 1)
     @Units("/h")
@@ -466,7 +466,7 @@ public interface SlayerConfig extends Config
         name = "Aquanites",
         description = "",
         section = taskSpeedSection,
-        position = 24
+        position = 250
     )
     @Range(min = 1)
     @Units("/h")
@@ -480,7 +480,7 @@ public interface SlayerConfig extends Config
         name = "Nechryael",
         description = "",
         section = taskSpeedSection,
-        position = 25
+        position = 260
     )
     @Range(min = 1)
     @Units("/h")
@@ -494,7 +494,7 @@ public interface SlayerConfig extends Config
         name = "Drakes",
         description = "",
         section = taskSpeedSection,
-        position = 26
+        position = 270
     )
     @Range(min = 1)
     @Units("/h")
@@ -508,7 +508,7 @@ public interface SlayerConfig extends Config
         name = "Abyssal Demons",
         description = "",
         section = taskSpeedSection,
-        position = 27
+        position = 280
     )
     @Range(min = 1)
     @Units("/h")
@@ -522,7 +522,7 @@ public interface SlayerConfig extends Config
         name = "Dark Beasts",
         description = "",
         section = taskSpeedSection,
-        position = 28
+        position = 290
     )
     @Range(min = 1)
     @Units("/h")
@@ -536,7 +536,7 @@ public interface SlayerConfig extends Config
         name = "Araxytes",
         description = "",
         section = taskSpeedSection,
-        position = 29
+        position = 300
     )
     @Range(min = 1)
     @Units("/h")
@@ -550,7 +550,7 @@ public interface SlayerConfig extends Config
         name = "Smoke Devils",
         description = "",
         section = taskSpeedSection,
-        position = 30
+        position = 310
     )
     @Range(min = 1)
     @Units("/h")
@@ -564,7 +564,7 @@ public interface SlayerConfig extends Config
         name = "Hydras",
         description = "",
         section = taskSpeedSection,
-        position = 31
+        position = 320
     )
     @Range(min = 1)
     @Units("/h")
@@ -578,7 +578,7 @@ public interface SlayerConfig extends Config
         name = "Save and recalculate",
         description = "Recalculates the average that Balanced and Fast + Best compare against.",
         section = taskSpeedSection,
-        position = 32
+        position = 330
     )
     default boolean taskChoiceRecalculate()
     {
@@ -589,7 +589,7 @@ public interface SlayerConfig extends Config
         keyName = "nieve",
         name = "Replace Steve with Nieve",
         description = "Model, name, chathead, menu entries and dialogue.",
-        position = 4
+        position = 50
     )
     default boolean nieve()
     {
@@ -601,7 +601,7 @@ public interface SlayerConfig extends Config
         name = "Enable master rules",
         description = "",
         section = masterRulesSection,
-        position = 0
+        position = 10
     )
     default boolean masterRules()
     {
@@ -613,7 +613,7 @@ public interface SlayerConfig extends Config
         name = "Default master",
         description = "Used when no rule matches.",
         section = masterRulesSection,
-        position = 1
+        position = 20
     )
     default DefaultMaster defaultMaster()
     {
@@ -625,7 +625,7 @@ public interface SlayerConfig extends Config
         name = "Rule 1",
         description = "",
         section = masterRulesSection,
-        position = 2
+        position = 30
     )
     default boolean rule1Enabled()
     {
@@ -638,7 +638,7 @@ public interface SlayerConfig extends Config
         name = "Rule 1: every Xth task",
         description = "",
         section = masterRulesSection,
-        position = 3
+        position = 40
     )
     default int rule1Interval()
     {
@@ -650,7 +650,7 @@ public interface SlayerConfig extends Config
         name = "Rule 1: use master",
         description = "",
         section = masterRulesSection,
-        position = 4
+        position = 50
     )
     default RuleMaster rule1Master()
     {
@@ -662,7 +662,7 @@ public interface SlayerConfig extends Config
         name = "Rule 2",
         description = "",
         section = masterRulesSection,
-        position = 5
+        position = 60
     )
     default boolean rule2Enabled()
     {
@@ -675,7 +675,7 @@ public interface SlayerConfig extends Config
         name = "Rule 2: every Xth task",
         description = "",
         section = masterRulesSection,
-        position = 6
+        position = 70
     )
     default int rule2Interval()
     {
@@ -687,7 +687,7 @@ public interface SlayerConfig extends Config
         name = "Rule 2: use master",
         description = "",
         section = masterRulesSection,
-        position = 7
+        position = 80
     )
     default RuleMaster rule2Master()
     {
@@ -699,7 +699,7 @@ public interface SlayerConfig extends Config
         name = "Rule 3",
         description = "",
         section = masterRulesSection,
-        position = 8
+        position = 90
     )
     default boolean rule3Enabled()
     {
@@ -712,7 +712,7 @@ public interface SlayerConfig extends Config
         name = "Rule 3: every Xth task",
         description = "",
         section = masterRulesSection,
-        position = 9
+        position = 100
     )
     default int rule3Interval()
     {
@@ -724,7 +724,7 @@ public interface SlayerConfig extends Config
         name = "Rule 3: use master",
         description = "",
         section = masterRulesSection,
-        position = 10
+        position = 110
     )
     default RuleMaster rule3Master()
     {
@@ -736,7 +736,7 @@ public interface SlayerConfig extends Config
         name = "Rule 4",
         description = "",
         section = masterRulesSection,
-        position = 11
+        position = 120
     )
     default boolean rule4Enabled()
     {
@@ -749,7 +749,7 @@ public interface SlayerConfig extends Config
         name = "Rule 4: every Xth task",
         description = "",
         section = masterRulesSection,
-        position = 12
+        position = 130
     )
     default int rule4Interval()
     {
@@ -761,7 +761,7 @@ public interface SlayerConfig extends Config
         name = "Rule 4: use master",
         description = "",
         section = masterRulesSection,
-        position = 13
+        position = 140
     )
     default RuleMaster rule4Master()
     {
@@ -773,7 +773,7 @@ public interface SlayerConfig extends Config
         name = "Rule 5",
         description = "",
         section = masterRulesSection,
-        position = 14
+        position = 150
     )
     default boolean rule5Enabled()
     {
@@ -786,7 +786,7 @@ public interface SlayerConfig extends Config
         name = "Rule 5: every Xth task",
         description = "",
         section = masterRulesSection,
-        position = 15
+        position = 160
     )
     default int rule5Interval()
     {
@@ -798,7 +798,7 @@ public interface SlayerConfig extends Config
         name = "Rule 5: use master",
         description = "",
         section = masterRulesSection,
-        position = 16
+        position = 170
     )
     default RuleMaster rule5Master()
     {
@@ -810,7 +810,7 @@ public interface SlayerConfig extends Config
         name = "Elite Western diary",
         description = "Nieve tasks pay 15 base points instead of 12.",
         section = masterRulesSection,
-        position = 18
+        position = 190
     )
     default boolean eliteWesternDiary()
     {
@@ -822,7 +822,7 @@ public interface SlayerConfig extends Config
         name = "Elite Kourend diary",
         description = "Konar tasks pay 20 base points instead of 18.",
         section = masterRulesSection,
-        position = 17
+        position = 180
     )
     default boolean eliteKourendDiary()
     {
@@ -834,7 +834,7 @@ public interface SlayerConfig extends Config
         name = "Show overlay near masters",
         description = "Next task number, selected master, points now and after the next task.",
         section = masterRulesSection,
-        position = 19
+        position = 200
     )
     default boolean showOverlay()
     {
@@ -842,11 +842,23 @@ public interface SlayerConfig extends Config
     }
 
     @ConfigItem(
+        keyName = "hideOverlayDuringMortimerTask",
+        name = "Hide overlay during Mortimer task",
+        description = "",
+        section = masterRulesSection,
+        position = 210
+    )
+    default boolean hideOverlayDuringMortimerTask()
+    {
+        return false;
+    }
+
+    @ConfigItem(
         keyName = "highlightCorrectMaster",
         name = "Highlight correct master",
         description = "",
         section = masterRulesSection,
-        position = 20
+        position = 220
     )
     default boolean highlightCorrectMaster()
     {
@@ -858,7 +870,7 @@ public interface SlayerConfig extends Config
         name = "Correct master color",
         description = "",
         section = masterRulesSection,
-        position = 21
+        position = 230
     )
     default Color correctMasterColor()
     {
@@ -870,7 +882,7 @@ public interface SlayerConfig extends Config
         name = "Highlight wrong masters",
         description = "",
         section = masterRulesSection,
-        position = 22
+        position = 240
     )
     default boolean highlightWrongMasters()
     {
@@ -882,7 +894,7 @@ public interface SlayerConfig extends Config
         name = "Wrong master color",
         description = "",
         section = masterRulesSection,
-        position = 23
+        position = 250
     )
     default Color wrongMasterColor()
     {
@@ -894,7 +906,7 @@ public interface SlayerConfig extends Config
         name = "Milestone chat reminder",
         description = "Chat message when your next task matches a rule.",
         section = masterRulesSection,
-        position = 24
+        position = 260
     )
     default boolean milestoneChatMessage()
     {
@@ -906,7 +918,7 @@ public interface SlayerConfig extends Config
         name = "Block wrong masters",
         description = "Consumes Assignment on masters other than the selected one.",
         section = masterRulesSection,
-        position = 25
+        position = 270
     )
     default boolean blockWrongMasters()
     {
@@ -918,7 +930,7 @@ public interface SlayerConfig extends Config
         name = "Hide wrong masters on milestone",
         description = "Removes Assignment from the other masters while a rule matches.",
         section = masterRulesSection,
-        position = 26
+        position = 280
     )
     default boolean hideWrongMastersOnMilestone()
     {
@@ -929,7 +941,7 @@ public interface SlayerConfig extends Config
         keyName = "showTaskArea",
         name = "Konar task area in chat",
         description = "",
-        position = 3
+        position = 40
     )
     default boolean showTaskArea()
     {
@@ -941,7 +953,7 @@ public interface SlayerConfig extends Config
         name = "Sort task list",
         description = "",
         section = taskSorterSection,
-        position = 0
+        position = 10
     )
     default boolean taskSorter()
     {
@@ -953,7 +965,7 @@ public interface SlayerConfig extends Config
         name = "Sort by",
         description = "Weight falls back to alphabetical when the list shows no odds.",
         section = taskSorterSection,
-        position = 1
+        position = 20
     )
     default TaskSortMethod taskSortMethod()
     {
@@ -965,7 +977,7 @@ public interface SlayerConfig extends Config
         name = "Reverse order",
         description = "",
         section = taskSorterSection,
-        position = 2
+        position = 30
     )
     default boolean taskSortReversed()
     {

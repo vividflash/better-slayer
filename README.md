@@ -57,6 +57,8 @@ Krystilia and Mortimer have their own task streak.
   other than the selected one.
 - **Elite Kourend diary** and **Elite Western diary**: used for the point
   values.
+- **Hide overlay during Mortimer task**: hides the panel near masters while
+  a task taken from Mortimer is active, so it stops popping in and out.
 - **Hide wrong masters on milestone**: removes `Assignment` from those masters
   while a rule matches.
 - **Highlight correct master** and **Highlight wrong masters**: selected
