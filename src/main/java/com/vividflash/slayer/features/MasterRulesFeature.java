@@ -24,13 +24,16 @@
  */
 package com.vividflash.slayer.features;
 
+import com.vividflash.slayer.RuleMaster;
 import com.vividflash.slayer.SlayerConfig;
 import com.vividflash.slayer.SlayerMaster;
 import java.awt.Color;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -45,8 +48,10 @@ import net.runelite.api.events.PostMenuSort;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.gameval.VarbitID;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 
@@ -60,6 +65,7 @@ import net.runelite.client.util.ColorUtil;
  *
  * Task streak and points come from server-synced varbits.
  */
+@Slf4j
 @Singleton
 public class MasterRulesFeature implements Feature
 {
@@ -71,6 +77,9 @@ public class MasterRulesFeature implements Feature
 
     @Inject
     private Client client;
+
+    @Inject
+    private ClientThread clientThread;
 
     @Inject
     private EventBus eventBus;
@@ -88,7 +97,24 @@ public class MasterRulesFeature implements Feature
     private MasterHighlightOverlay masterHighlightOverlay;
 
     private final Map<NPC, SlayerMaster> nearbyMasters = new LinkedHashMap<>();
+    private final Map<NPC, SlayerMaster> nearbyMastersView = Collections.unmodifiableMap(nearbyMasters);
     private int lastAnnouncedTaskNumber = -1;
+    /** The master whose Assignment entry the last menu sort removed, so a hover logs once. */
+    private SlayerMaster lastMenuRemovedMaster;
+    /** Volatile because startUp and shutDown run off the client thread. */
+    private volatile boolean running;
+
+    /**
+     * Set by every input the cached values depend on (the slayer varbits and
+     * varp, a config change, a game state change); the next read rebuilds
+     * them. Volatile because config changes arrive off the client thread.
+     */
+    private volatile boolean stale = true;
+    private Recommendation recommendation;
+    private int nextTaskNumber;
+    private int projectedGain;
+    private int currentPoints;
+    private int mortimerTasksCompleted;
 
     /**
      * The recommended master plus whether it came from a rule (vs the default).
@@ -104,86 +130,171 @@ public class MasterRulesFeature implements Feature
             this.master = master;
             this.fromRule = fromRule;
         }
+
+        /**
+         * True for a master other than the recommended one. On a rule task
+         * separate-streak masters are exempt, their tasks can't cost a
+         * normal-streak milestone.
+         */
+        public boolean isWrong(SlayerMaster other)
+        {
+            return master != null && other != master && !(fromRule && other.hasSeparateStreak());
+        }
+    }
+
+    private static final class Rule
+    {
+        final boolean enabled;
+        final int interval;
+        final RuleMaster master;
+
+        Rule(boolean enabled, int interval, RuleMaster master)
+        {
+            this.enabled = enabled;
+            this.interval = interval;
+            this.master = master;
+        }
     }
 
     @Override
     public void startUp()
     {
+        if (log.isDebugEnabled())
+        {
+            log.debug("[config] masterRules={} default={} block={} hide={} milestoneChat={} "
+                    + "rule1={}@{}->{} rule2={}@{}->{} rule3={}@{}->{} rule4={}@{}->{} rule5={}@{}->{}",
+                config.masterRules(), config.defaultMaster(), config.blockWrongMasters(),
+                config.hideWrongMastersOnMilestone(), config.milestoneChatMessage(),
+                config.rule1Enabled(), config.rule1Interval(), config.rule1Master(),
+                config.rule2Enabled(), config.rule2Interval(), config.rule2Master(),
+                config.rule3Enabled(), config.rule3Interval(), config.rule3Master(),
+                config.rule4Enabled(), config.rule4Interval(), config.rule4Master(),
+                config.rule5Enabled(), config.rule5Interval(), config.rule5Master());
+        }
+        running = true;
+        stale = true;
         eventBus.register(this);
         overlayManager.add(masterRulesOverlay);
         overlayManager.add(masterHighlightOverlay);
+        clientThread.invokeLater(this::trackSceneMasters);
     }
 
     @Override
     public void shutDown()
     {
+        // Off the bus first, then the state is reset on the client thread,
+        // where the handlers and the other features read it.
+        running = false;
+        eventBus.unregister(this);
         overlayManager.remove(masterRulesOverlay);
         overlayManager.remove(masterHighlightOverlay);
-        nearbyMasters.clear();
-        lastAnnouncedTaskNumber = -1;
-        eventBus.unregister(this);
+        clientThread.invoke(() ->
+        {
+            nearbyMasters.clear();
+            lastAnnouncedTaskNumber = -1;
+            stale = true;
+        });
+    }
+
+    /**
+     * Picks up masters that spawned before startUp registered the feature.
+     * NPCs stay in the client after logout, so the scene is only read while
+     * logged in.
+     */
+    private void trackSceneMasters()
+    {
+        if (!running || client.getGameState() != GameState.LOGGED_IN)
+        {
+            return;
+        }
+        for (NPC npc : client.getTopLevelWorldView().npcs())
+        {
+            SlayerMaster master = SlayerMaster.forNpc(npc);
+            if (master != null)
+            {
+                nearbyMasters.put(npc, master);
+            }
+        }
+        if (log.isDebugEnabled())
+        {
+            log.debug("[master] scene scan, tracked={}", nearbyMasters.size());
+        }
     }
 
     public Map<NPC, SlayerMaster> getNearbyMasters()
     {
-        return nearbyMasters;
-    }
-
-    public int getCompletedTasks()
-    {
-        return client.getVarbitValue(VarbitID.SLAYER_TASKS_COMPLETED);
+        return nearbyMastersView;
     }
 
     public int getNextTaskNumber()
     {
-        return getCompletedTasks() + 1;
+        refreshIfStale();
+        return nextTaskNumber;
     }
 
     public int getMortimerTasksCompleted()
     {
-        return client.getVarpValue(VarPlayerID.SLAYER_MORTIMER_TASKS_COMPLETED);
+        refreshIfStale();
+        return mortimerTasksCompleted;
     }
 
     public int getCurrentPoints()
     {
-        return client.getVarbitValue(VarbitID.SLAYER_POINTS);
+        refreshIfStale();
+        return currentPoints;
     }
 
     public Recommendation getRecommendation()
     {
-        int next = getNextTaskNumber();
+        refreshIfStale();
+        return recommendation;
+    }
+
+    public int getProjectedGain()
+    {
+        refreshIfStale();
+        return projectedGain;
+    }
+
+    /**
+     * The flag is cleared before the inputs are read, so a change that lands
+     * during the rebuild marks the result stale again.
+     */
+    private void refreshIfStale()
+    {
+        if (!stale)
+        {
+            return;
+        }
+        stale = false;
+        nextTaskNumber = client.getVarbitValue(VarbitID.SLAYER_TASKS_COMPLETED) + 1;
+        currentPoints = client.getVarbitValue(VarbitID.SLAYER_POINTS);
+        mortimerTasksCompleted = client.getVarpValue(VarPlayerID.SLAYER_MORTIMER_TASKS_COMPLETED);
+        recommendation = computeRecommendation(nextTaskNumber);
+        projectedGain = recommendation.master == null ? 0 : recommendation.master.getPointsForTask(
+            nextTaskNumber, config.eliteWesternDiary(), config.eliteKourendDiary());
+    }
+
+    private Recommendation computeRecommendation(int next)
+    {
+        Rule[] rules = {
+            new Rule(config.rule1Enabled(), config.rule1Interval(), config.rule1Master()),
+            new Rule(config.rule2Enabled(), config.rule2Interval(), config.rule2Master()),
+            new Rule(config.rule3Enabled(), config.rule3Interval(), config.rule3Master()),
+            new Rule(config.rule4Enabled(), config.rule4Interval(), config.rule4Master()),
+            new Rule(config.rule5Enabled(), config.rule5Interval(), config.rule5Master())
+        };
+
         SlayerMaster best = config.defaultMaster().getMaster();
         int bestInterval = 0;
-
-        int rule1 = interval(config.rule1Interval());
-        if (config.rule1Enabled() && next % rule1 == 0 && rule1 > bestInterval)
+        for (Rule rule : rules)
         {
-            best = config.rule1Master().getMaster();
-            bestInterval = rule1;
-        }
-        int rule2 = interval(config.rule2Interval());
-        if (config.rule2Enabled() && next % rule2 == 0 && rule2 > bestInterval)
-        {
-            best = config.rule2Master().getMaster();
-            bestInterval = rule2;
-        }
-        int rule3 = interval(config.rule3Interval());
-        if (config.rule3Enabled() && next % rule3 == 0 && rule3 > bestInterval)
-        {
-            best = config.rule3Master().getMaster();
-            bestInterval = rule3;
-        }
-        int rule4 = interval(config.rule4Interval());
-        if (config.rule4Enabled() && next % rule4 == 0 && rule4 > bestInterval)
-        {
-            best = config.rule4Master().getMaster();
-            bestInterval = rule4;
-        }
-        int rule5 = interval(config.rule5Interval());
-        if (config.rule5Enabled() && next % rule5 == 0 && rule5 > bestInterval)
-        {
-            best = config.rule5Master().getMaster();
-            bestInterval = rule5;
+            int every = interval(rule.interval);
+            if (rule.enabled && next % every == 0 && every > bestInterval)
+            {
+                best = rule.master.getMaster();
+                bestInterval = every;
+            }
         }
 
         return new Recommendation(best, bestInterval > 0);
@@ -198,17 +309,6 @@ public class MasterRulesFeature implements Feature
         return Math.max(1, configured);
     }
 
-    public int getProjectedGain()
-    {
-        SlayerMaster master = getRecommendation().master;
-        if (master == null)
-        {
-            return 0;
-        }
-        return master.getPointsForTask(
-            getNextTaskNumber(), config.eliteWesternDiary(), config.eliteKourendDiary());
-    }
-
     @Subscribe
     public void onNpcSpawned(NpcSpawned event)
     {
@@ -217,6 +317,10 @@ public class MasterRulesFeature implements Feature
         if (master != null)
         {
             nearbyMasters.put(npc, master);
+            if (log.isDebugEnabled())
+            {
+                log.debug("[master] {} nearby, tracked={}", master, nearbyMasters.size());
+            }
         }
     }
 
@@ -229,9 +333,19 @@ public class MasterRulesFeature implements Feature
     @Subscribe
     public void onGameStateChanged(GameStateChanged event)
     {
+        stale = true;
         if (event.getGameState() == GameState.LOGIN_SCREEN || event.getGameState() == GameState.HOPPING)
         {
             nearbyMasters.clear();
+            if (log.isDebugEnabled())
+            {
+                log.debug("[state] game state {}, nearby masters cleared", event.getGameState());
+            }
+        }
+        // The varps sync again after a hop, which must not repeat the reminder;
+        // a logout may be followed by another account.
+        if (event.getGameState() == GameState.LOGIN_SCREEN)
+        {
             lastAnnouncedTaskNumber = -1;
         }
     }
@@ -239,10 +353,17 @@ public class MasterRulesFeature implements Feature
     @Subscribe
     public void onVarbitChanged(VarbitChanged event)
     {
+        if (event.getVarbitId() == VarbitID.SLAYER_POINTS
+            || event.getVarpId() == VarPlayerID.SLAYER_MORTIMER_TASKS_COMPLETED)
+        {
+            stale = true;
+            return;
+        }
         if (event.getVarbitId() != VarbitID.SLAYER_TASKS_COMPLETED)
         {
             return;
         }
+        stale = true;
 
         if (!config.masterRules() || !config.milestoneChatMessage())
         {
@@ -264,9 +385,22 @@ public class MasterRulesFeature implements Feature
         lastAnnouncedTaskNumber = next;
         int gain = recommendation.master.getPointsForTask(
             next, config.eliteWesternDiary(), config.eliteKourendDiary());
+        if (log.isDebugEnabled())
+        {
+            log.debug("[milestone] reminder task={} master={} gain={}", next, recommendation.master, gain);
+        }
         client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",
             ColorUtil.wrapWithColorTag("Task #" + next + ": use "
                 + recommendation.master.getDisplayName() + " (+" + gain + " points).", REMINDER_MESSAGE_COLOR), null);
+    }
+
+    @Subscribe
+    public void onConfigChanged(ConfigChanged event)
+    {
+        if (SlayerConfig.GROUP.equals(event.getGroup()))
+        {
+            stale = true;
+        }
     }
 
     @Subscribe
@@ -284,6 +418,7 @@ public class MasterRulesFeature implements Feature
         }
 
         Menu root = client.getMenu();
+        SlayerMaster removedMaster = null;
         for (MenuEntry entry : root.getMenuEntries())
         {
             if (!"Assignment".equals(entry.getOption()))
@@ -298,10 +433,21 @@ public class MasterRulesFeature implements Feature
             }
 
             SlayerMaster master = SlayerMaster.forNpc(npc);
-            if (master != null && master != recommendation.master && !master.hasSeparateStreak())
+            if (master != null && recommendation.isWrong(master))
             {
                 root.removeMenuEntry(entry);
+                removedMaster = master;
             }
+        }
+
+        if (removedMaster != lastMenuRemovedMaster)
+        {
+            if (removedMaster != null && log.isDebugEnabled())
+            {
+                log.debug("[menu] removed Assignment on {}, recommended={} nextTask={}",
+                    removedMaster, recommendation.master, getNextTaskNumber());
+            }
+            lastMenuRemovedMaster = removedMaster;
         }
     }
 
@@ -331,17 +477,17 @@ public class MasterRulesFeature implements Feature
         }
 
         Recommendation recommendation = getRecommendation();
-        if (recommendation.master == null || clicked == recommendation.master)
-        {
-            return;
-        }
-
-        if (recommendation.fromRule && clicked.hasSeparateStreak())
+        if (!recommendation.isWrong(clicked))
         {
             return;
         }
 
         event.consume();
+        if (log.isDebugEnabled())
+        {
+            log.debug("[click] consumed Assignment on {}, recommended={} fromRule={} nextTask={}",
+                clicked, recommendation.master, recommendation.fromRule, getNextTaskNumber());
+        }
         String name = recommendation.master.getDisplayName();
         String message = recommendation.fromRule
             ? "Milestone Task: use " + name + " for +" + getProjectedGain() + " points"

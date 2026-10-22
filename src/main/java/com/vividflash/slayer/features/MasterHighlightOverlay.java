@@ -60,12 +60,12 @@ public class MasterHighlightOverlay extends Overlay
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!config.masterRules())
+        if (feature.getNearbyMasters().isEmpty())
         {
             return null;
         }
 
-        if (feature.getNearbyMasters().isEmpty())
+        if (!config.masterRules())
         {
             return null;
         }
@@ -79,7 +79,7 @@ public class MasterHighlightOverlay extends Overlay
         for (Map.Entry<NPC, SlayerMaster> entry : feature.getNearbyMasters().entrySet())
         {
             boolean correct = entry.getValue() == recommended;
-            if (!correct && recommendation.fromRule && entry.getValue().hasSeparateStreak())
+            if (!correct && !recommendation.isWrong(entry.getValue()))
             {
                 // On a rule task separate-streak masters are not "wrong".
                 // Their tasks can't cost a normal-streak milestone.

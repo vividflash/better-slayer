@@ -72,7 +72,7 @@ Krystilia and Mortimer have their own task streak.
 
 ## Task Sorter
 
-Sorts the slayer task list (the standalone list and the rewards Tasks tab) by
+Sorts the slayer task list by
 assignment weight or by name, optionally reversed. Weight falls back to
 alphabetical when the list shows no odds.
 

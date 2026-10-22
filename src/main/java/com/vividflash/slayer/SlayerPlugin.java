@@ -35,6 +35,7 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.util.List;
 import javax.inject.Inject;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.GameState;
 import net.runelite.api.events.GameStateChanged;
@@ -46,6 +47,7 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 
+@Slf4j
 @PluginDescriptor(
     name = "Better Slayer",
     description = "Mortimer task odds, master rules, task sorting, Nieve",
@@ -53,7 +55,6 @@ import net.runelite.client.plugins.PluginDescriptor;
 )
 public class SlayerPlugin extends Plugin
 {
-    private static final String CONFIG_GROUP = "vividflashslayer";
     private static final String LAST_SEEN_VERSION_KEY = "lastSeenVersion";
 
     /** The release the one-time notice below belongs to, not the packaged version. */
@@ -96,12 +97,17 @@ public class SlayerPlugin extends Plugin
         features.add(taskAreaFeature);
         features.add(taskSorterFeature);
         features.add(taskChoiceOddsFeature);
+        if (log.isDebugEnabled())
+        {
+            log.debug("[state] startUp, features={}", features.size());
+        }
         features.forEach(Feature::startUp);
     }
 
     @Override
     protected void shutDown()
     {
+        log.debug("[state] shutDown");
         features.forEach(Feature::shutDown);
         features.clear();
     }
@@ -114,12 +120,16 @@ public class SlayerPlugin extends Plugin
     public void onGameStateChanged(GameStateChanged event)
     {
         if (event.getGameState() != GameState.LOGGED_IN
-            || VERSION.equals(configManager.getConfiguration(CONFIG_GROUP, LAST_SEEN_VERSION_KEY)))
+            || VERSION.equals(configManager.getConfiguration(SlayerConfig.GROUP, LAST_SEEN_VERSION_KEY)))
         {
             return;
         }
 
-        configManager.setConfiguration(CONFIG_GROUP, LAST_SEEN_VERSION_KEY, VERSION);
+        if (log.isDebugEnabled())
+        {
+            log.debug("[update] notice shown for version {}", VERSION);
+        }
+        configManager.setConfiguration(SlayerConfig.GROUP, LAST_SEEN_VERSION_KEY, VERSION);
         chatMessageManager.queue(QueuedMessage.builder()
             .type(ChatMessageType.CONSOLE)
             .runeLiteFormattedMessage(new ChatMessageBuilder()

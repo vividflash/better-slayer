@@ -25,8 +25,11 @@
 package com.vividflash.slayer.features;
 
 import com.vividflash.slayer.SlayerConfig;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -44,6 +47,8 @@ import net.runelite.api.events.MenuOptionClicked;
 import net.runelite.api.events.NpcDespawned;
 import net.runelite.api.events.NpcSpawned;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.events.WidgetClosed;
+import net.runelite.api.events.WidgetLoaded;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.api.gameval.NpcID;
 import net.runelite.api.gameval.VarbitID;
@@ -190,6 +195,11 @@ public class NieveInsteadOfSteveFeature implements Feature
     private static final String OFF_TASK_ORIGINAL = "Steve wants you to stick to your Slayer assignments.";
     private static final String OFF_TASK_REWRITE = "Nieve wants you to stick to your Slayer assignments.";
 
+    private static final Pattern WHITESPACE = Pattern.compile("\\s+");
+
+    /** Texts held in the plain text cache before it starts over; the contact list is the longest set. */
+    private static final int PLAIN_TEXT_CACHE_SIZE = 128;
+
     @Inject
     private Client client;
 
@@ -207,9 +217,6 @@ public class NieveInsteadOfSteveFeature implements Feature
 
     /** Set while the client-side varbit is being pinned to {@link #SHOWING_NIEVE} by this feature. */
     private boolean pinned;
-
-    /** Set between a write of our own and the event that carries it back. */
-    private boolean echoPending;
 
     /** Steve npcs currently in the scene, so spawn and despawn order cannot unbalance a count. */
     private final Set<NPC> steveNpcs = new HashSet<>();
@@ -236,34 +243,73 @@ public class NieveInsteadOfSteveFeature implements Feature
     /** Ticks in a row with no dialogue open after the contact's conversation. */
     private int contactIdleTicks;
 
+    /** The NPC Contact list is open, so its rows are dressed each frame. */
+    private boolean contactListOpen;
+
+    /** The scroll popup the grave uses is open, whatever it is showing. */
+    private boolean scrollOpen;
+
+    /**
+     * Plain forms of widget texts seen recently, keyed by the raw text, so the
+     * per-frame matching does not strip tags from the same text every frame.
+     */
+    private final Map<String, String> plainTexts = new HashMap<>();
+
+    /** The grave's line widgets, looked up again each frame into the same array. */
+    private final Widget[] graveLines = new Widget[GRAVE_LINES.length];
+
     @Override
     public void startUp()
     {
+        if (log.isDebugEnabled())
+        {
+            log.debug("[config] nieve={}", config.nieve());
+        }
         eventBus.register(this);
         clientThread.invokeLater(this::reconcileVarbit);
         clientThread.invokeLater(this::refreshSteveState);
+        // Either interface may already be open when the plugin starts, and no
+        // load event comes for it then.
+        clientThread.invokeLater(() ->
+        {
+            contactListOpen = isOpen(InterfaceID.LunarContactNpc.UNIVERSE);
+            scrollOpen = isOpen(InterfaceID.Messagescroll2.MESSAGESCROLL2_CLOSE);
+        });
     }
 
     @Override
     public void shutDown()
     {
-        // Off the bus first, so the write below cannot re-pin through our own
-        // varbit handler.
+        // Off the bus first, so no handler re-pins after the write below.
         eventBus.unregister(this);
-        clientThread.invoke(this::unpin);
+        clientThread.invoke(() ->
+        {
+            unpin();
+            // Nothing from this run carries over to the next start, which
+            // reads the varbit and the scene again.
+            clearSteveState();
+            serverValue = UNOBSERVED;
+            plainTexts.clear();
+        });
+    }
+
+    private boolean isOpen(int componentId)
+    {
+        Widget widget = client.getWidget(componentId);
+        return widget != null && !widget.isHidden();
     }
 
     /** True while the server says Steve and the user wants to see Nieve. */
     private boolean swapActive()
     {
-        return config.nieve() && serverValue == SHOWING_STEVE;
+        return serverValue == SHOWING_STEVE && config.nieve();
     }
 
     /**
-     * Files an observed varbit value as the server's own. Each write of ours
-     * comes back through the same event, so one echo is swallowed per write
-     * and everything after it counts as the server's. Unknown values are
-     * ignored.
+     * Files an observed varbit value as the server's own. A write of ours
+     * posts no varbit event, so every event carries the server's value. Once
+     * the server says Nieve, the pin has nothing left to hold. Unknown values
+     * are ignored.
      */
     private void observe(int exposed)
     {
@@ -272,16 +318,19 @@ public class NieveInsteadOfSteveFeature implements Feature
             return;
         }
 
-        if (echoPending && exposed == SHOWING_NIEVE)
+        if (serverValue != exposed && log.isDebugEnabled())
         {
-            echoPending = false;
-            return;
+            log.debug("[nieve] server varbit {} -> {}", serverValue, exposed);
         }
-
         serverValue = exposed;
+        if (exposed == SHOWING_NIEVE && pinned)
+        {
+            pinned = false;
+            log.debug("[nieve] unpinned, server shows Nieve");
+        }
     }
 
-    /** Pins the client-side varbit to Nieve, and keeps re-pinning it if it drifts back. */
+    /** Pins the client-side varbit to Nieve. */
     private void pin()
     {
         if (!config.nieve() || serverValue != SHOWING_STEVE)
@@ -289,10 +338,13 @@ public class NieveInsteadOfSteveFeature implements Feature
             return;
         }
 
+        if (!pinned && log.isDebugEnabled())
+        {
+            log.debug("[nieve] pinned to Nieve, server value {}", serverValue);
+        }
         pinned = true;
         if (client.getVarbitValue(VarbitID.MM2_SLAYER_MASTER) != SHOWING_NIEVE)
         {
-            echoPending = true;
             client.setVarbit(VarbitID.MM2_SLAYER_MASTER, SHOWING_NIEVE);
         }
     }
@@ -300,13 +352,16 @@ public class NieveInsteadOfSteveFeature implements Feature
     /** Hands the varbit back to the value the server actually gave us. */
     private void unpin()
     {
-        echoPending = false;
         if (!pinned)
         {
             return;
         }
 
         pinned = false;
+        if (log.isDebugEnabled())
+        {
+            log.debug("[nieve] unpinned, varbit handed back to {}", serverValue);
+        }
         if (serverValue == SHOWING_STEVE || serverValue == SHOWING_NIEVE)
         {
             client.setVarbit(VarbitID.MM2_SLAYER_MASTER, serverValue);
@@ -321,8 +376,8 @@ public class NieveInsteadOfSteveFeature implements Feature
             return;
         }
 
-        // A read taken while the pin is up returns our own value, so only the
-        // varbit event can tell us what the server holds from then on.
+        // A read taken while the pin is up can return our own value, so it is
+        // only filed as the server's while unpinned.
         if (!pinned)
         {
             observe(client.getVarbitValue(VarbitID.MM2_SLAYER_MASTER));
@@ -349,7 +404,10 @@ public class NieveInsteadOfSteveFeature implements Feature
             }
         }
         steveNearby = !steveNpcs.isEmpty();
-        log.debug("Steve state refreshed: nearby={} task={}", steveNearby, steveTask);
+        if (log.isDebugEnabled())
+        {
+            log.debug("Steve state refreshed: nearby={} task={}", steveNearby, steveTask);
+        }
     }
 
     private static boolean isSteve(int npcId)
@@ -367,6 +425,8 @@ public class NieveInsteadOfSteveFeature implements Feature
         contactDialogueSeen = false;
         dialogueOpen = false;
         contactIdleTicks = 0;
+        contactListOpen = false;
+        scrollOpen = false;
     }
 
     @Subscribe
@@ -377,8 +437,11 @@ public class NieveInsteadOfSteveFeature implements Feature
         {
             steveNpcs.add(npc);
             steveNearby = true;
-            log.debug("Steve spawned ({}, shown as {}), nearby", npc.getId(),
-                npc.getTransformedComposition() == null ? -1 : npc.getTransformedComposition().getId());
+            if (log.isDebugEnabled())
+            {
+                log.debug("Steve spawned ({}, shown as {}), nearby", npc.getId(),
+                    npc.getTransformedComposition() == null ? -1 : npc.getTransformedComposition().getId());
+            }
         }
     }
 
@@ -390,7 +453,10 @@ public class NieveInsteadOfSteveFeature implements Feature
         {
             steveNpcs.remove(npc);
             steveNearby = !steveNpcs.isEmpty();
-            log.debug("Steve despawned ({}), nearby={}", npc.getId(), steveNearby);
+            if (log.isDebugEnabled())
+            {
+                log.debug("Steve despawned ({}), nearby={}", npc.getId(), steveNearby);
+            }
         }
     }
 
@@ -412,7 +478,10 @@ public class NieveInsteadOfSteveFeature implements Feature
         if (event.getVarbitId() == VarbitID.SLAYER_MASTER)
         {
             steveTask = event.getValue() == TASK_MASTER_STEVE;
-            log.debug("Task master {}, steveTask={}", event.getValue(), steveTask);
+            if (log.isDebugEnabled())
+            {
+                log.debug("Task master {}, steveTask={}", event.getValue(), steveTask);
+            }
             return;
         }
 
@@ -441,14 +510,32 @@ public class NieveInsteadOfSteveFeature implements Feature
                 log.debug("NPC Contact conversation over, dialogue gate closed");
             }
         }
+    }
 
-        if (!config.nieve())
+    @Subscribe
+    public void onWidgetLoaded(WidgetLoaded event)
+    {
+        if (event.getGroupId() == InterfaceID.LUNAR_CONTACT_NPC)
         {
-            return;
+            contactListOpen = true;
         }
+        else if (event.getGroupId() == InterfaceID.MESSAGESCROLL2)
+        {
+            scrollOpen = true;
+        }
+    }
 
-        // Backstop in case the varbit change never surfaces as its own event.
-        reconcileVarbit();
+    @Subscribe
+    public void onWidgetClosed(WidgetClosed event)
+    {
+        if (event.getGroupId() == InterfaceID.LUNAR_CONTACT_NPC)
+        {
+            contactListOpen = false;
+        }
+        else if (event.getGroupId() == InterfaceID.MESSAGESCROLL2)
+        {
+            scrollOpen = false;
+        }
     }
 
     @Subscribe
@@ -457,8 +544,11 @@ public class NieveInsteadOfSteveFeature implements Feature
         // Steve only speaks in person, through a gem or ring tied to his task,
         // or through NPC Contact, so the dialogue lookups wait for one of those.
         // A group that is not loaded has no root widget, so one lookup each
-        // keeps the per-frame cost flat while none of these are open.
-        if (steveNearby || steveTask || contactPending)
+        // keeps the per-frame cost flat while none of these are open. Every
+        // dress step needs the swap active, so nothing is looked up without
+        // it; a contact clicked meanwhile stays pending for when it turns on.
+        boolean active = swapActive();
+        if (active && (contactPending || steveNearby || steveTask))
         {
             boolean left = client.getWidget(InterfaceID.ChatLeft.UNIVERSE) != null;
             boolean right = client.getWidget(InterfaceID.ChatRight.UNIVERSE) != null;
@@ -483,11 +573,15 @@ public class NieveInsteadOfSteveFeature implements Feature
                 log.debug("NPC Contact dialogue opened");
             }
         }
-        if (client.getWidget(InterfaceID.LunarContactNpc.UNIVERSE) != null)
+        if (!active)
+        {
+            return;
+        }
+        if (contactListOpen)
         {
             dressContactList();
         }
-        if (client.getWidget(InterfaceID.Messagescroll2.MESSAGESCROLL2_CLOSE) != null)
+        if (scrollOpen)
         {
             rewriteGrave();
         }
@@ -523,9 +617,14 @@ public class NieveInsteadOfSteveFeature implements Feature
     @Subscribe
     public void onConfigChanged(ConfigChanged event)
     {
-        if (!"vividflashslayer".equals(event.getGroup()) || !"nieve".equals(event.getKey()))
+        if (!SlayerConfig.GROUP.equals(event.getGroup()) || !"nieve".equals(event.getKey()))
         {
             return;
+        }
+
+        if (log.isDebugEnabled())
+        {
+            log.debug("[config] nieve -> {}", event.getNewValue());
         }
 
         clientThread.invoke(() ->
@@ -584,6 +683,10 @@ public class NieveInsteadOfSteveFeature implements Feature
             return;
         }
 
+        if (log.isDebugEnabled())
+        {
+            log.debug("[chat] rewrote message to {}", rewrite);
+        }
         node.setValue(rewrite);
         // The chatbox repaints on its own schedule, so request a refresh for
         // the edit to show immediately.
@@ -595,11 +698,6 @@ public class NieveInsteadOfSteveFeature implements Feature
      */
     private void dressDialogue()
     {
-        if (!swapActive())
-        {
-            return;
-        }
-
         // Steve is the speaker under either label, the game's own "Steve" or
         // the "Nieve" left behind by a previous frame's rename.
         Widget name = client.getWidget(InterfaceID.ChatLeft.NAME);
@@ -608,11 +706,13 @@ public class NieveInsteadOfSteveFeature implements Feature
         if (name != null && STEVE.equals(label))
         {
             name.setText(NIEVE);
+            log.debug("[dialog] speaker renamed to Nieve");
         }
 
         Widget chathead = client.getWidget(InterfaceID.ChatLeft.HEAD);
         if (chathead != null && chathead.getModelId() == STEVE_CHATHEAD)
         {
+            log.debug("[dialog] chathead swapped to Nieve");
             chathead.setModelId(NIEVE_CHATHEAD);
         }
 
@@ -627,6 +727,10 @@ public class NieveInsteadOfSteveFeature implements Feature
             {
                 // The cousin/takeover box answers the reworded chat option;
                 // any other identity line gets the generic deflection.
+                if (log.isDebugEnabled())
+                {
+                    log.debug("[dialog] identity line replaced: {}", plain);
+                }
                 body.setText(plain.toLowerCase().contains("cousin")
                     ? DEMISE_LINE
                     : DIALOGUE_BODY_REWRITE);
@@ -640,11 +744,6 @@ public class NieveInsteadOfSteveFeature implements Feature
      */
     private void dressPlayerDialogue()
     {
-        if (!swapActive())
-        {
-            return;
-        }
-
         Widget text = client.getWidget(InterfaceID.ChatRight.TEXT);
         if (text == null)
         {
@@ -656,6 +755,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         String plain = plainText(text);
         if (NEW_MASTER_OPTION.equals(plain))
         {
+            log.debug("[dialog] player option echo reworded");
             text.setText(NEW_MASTER_OPTION_REWRITE);
             return;
         }
@@ -663,6 +763,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         // The branch closes on condolences the rewritten one has no use for.
         if (CONDOLENCE_LINE.equals(plain))
         {
+            log.debug("[dialog] condolence line reworded");
             text.setText(CONDOLENCE_REWRITE);
             return;
         }
@@ -670,6 +771,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         String raw = text.getText();
         if (raw != null && raw.contains(STEVE))
         {
+            log.debug("[dialog] player line renamed Steve to Nieve");
             text.setText(raw.replace(STEVE, NIEVE));
         }
     }
@@ -680,11 +782,6 @@ public class NieveInsteadOfSteveFeature implements Feature
      */
     private void dressChatOptions()
     {
-        if (!swapActive())
-        {
-            return;
-        }
-
         Widget options = client.getWidget(InterfaceID.Chatmenu.OPTIONS);
         if (options == null)
         {
@@ -701,6 +798,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         {
             if (child != null && NEW_MASTER_OPTION.equals(plainText(child)))
             {
+                log.debug("[dialog] chat option reworded");
                 child.setText(NEW_MASTER_OPTION_REWRITE);
             }
         }
@@ -720,11 +818,6 @@ public class NieveInsteadOfSteveFeature implements Feature
      */
     private void dressContactList()
     {
-        if (!swapActive())
-        {
-            return;
-        }
-
         Widget root = client.getWidget(InterfaceID.LunarContactNpc.UNIVERSE);
         if (root == null || root.isHidden())
         {
@@ -759,6 +852,7 @@ public class NieveInsteadOfSteveFeature implements Feature
             return;
         }
 
+        log.debug("[contact] Steve row relabeled to Nieve");
         entries[labelIndex].setText(NIEVE);
         chathead.setModelId(NIEVE_CHATHEAD);
     }
@@ -815,12 +909,7 @@ public class NieveInsteadOfSteveFeature implements Feature
      */
     private void rewriteGrave()
     {
-        if (!swapActive())
-        {
-            return;
-        }
-
-        Widget[] lines = new Widget[GRAVE_LINES.length];
+        Widget[] lines = graveLines;
         Widget dedication = null;
         String dedicationText = null;
         for (int i = 0; i < GRAVE_LINES.length; i++)
@@ -850,6 +939,7 @@ public class NieveInsteadOfSteveFeature implements Feature
             String plain = plainText(line);
             if (GRAVE_TITLE_ORIGINAL.equals(plain))
             {
+                log.debug("[grave] memorial rewritten");
                 line.setText(GRAVE_TITLE_REWRITE);
             }
             else if (plain.startsWith(GRAVE_MEMORIAL_MARKER))
@@ -869,15 +959,26 @@ public class NieveInsteadOfSteveFeature implements Feature
         dedication.setText(dedicationText.replace(GRAVE_DEDICATION_ORIGINAL, GRAVE_DEDICATION_SWAP));
     }
 
-    private static String plainText(Widget widget)
+    private String plainText(Widget widget)
     {
         String text = widget.getText();
         if (text == null)
         {
             return "";
         }
-        // Dialogue boxes wrap with <br>; fold the breaks back to spaces so
-        // exact-match comparisons see the line as written.
-        return Text.removeTags(text.replace("<br>", " ")).replaceAll("\\s+", " ").trim();
+        String plain = plainTexts.get(text);
+        if (plain == null)
+        {
+            if (plainTexts.size() >= PLAIN_TEXT_CACHE_SIZE)
+            {
+                plainTexts.clear();
+            }
+            // Dialogue boxes wrap with <br>; fold the breaks back to spaces so
+            // exact-match comparisons see the line as written.
+            String folded = Text.removeTags(text.replace("<br>", " "));
+            plain = WHITESPACE.matcher(folded).replaceAll(" ").trim();
+            plainTexts.put(text, plain);
+        }
+        return plain;
     }
 }

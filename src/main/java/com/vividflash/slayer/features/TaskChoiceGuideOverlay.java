@@ -27,12 +27,12 @@ package com.vividflash.slayer.features;
 import com.vividflash.slayer.SlayerConfig;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import net.runelite.api.Client;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -48,14 +48,17 @@ import net.runelite.client.ui.overlay.components.TitleComponent;
 @Singleton
 public class TaskChoiceGuideOverlay extends OverlayPanel
 {
-    private final Client client;
     private final SlayerConfig config;
     private final TaskChoiceOddsFeature feature;
 
+    /** The panel width, measured once for the rows and font it was worked out from. */
+    private List<TaskChoiceOddsFeature.Row> widthRows;
+    private Font widthFont;
+    private int width;
+
     @Inject
-    TaskChoiceGuideOverlay(Client client, SlayerConfig config, TaskChoiceOddsFeature feature)
+    TaskChoiceGuideOverlay(SlayerConfig config, TaskChoiceOddsFeature feature)
     {
-        this.client = client;
         this.config = config;
         this.feature = feature;
         setPosition(OverlayPosition.TOP_LEFT);
@@ -66,25 +69,26 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
     @Override
     public Dimension render(Graphics2D graphics)
     {
+        // Past the retain time the taken rows are empty, and with his window
+        // closed there is nothing else to show.
+        if (feature.getTakenRows().isEmpty()
+            && (feature.getChoices().isEmpty() || !feature.isChoiceInterfaceLoaded()))
+        {
+            return null;
+        }
+
         if (!config.taskChoiceShowAreas())
         {
             return null;
         }
 
-        if (feature.getChoices().isEmpty() && !feature.isTakenTaskActive())
-        {
-            return null;
-        }
-
         // With his window closed, the task just taken stays up for a while.
-        Widget content = client.getWidget(TaskChoiceOddsFeature.TASK_CHOICE_CONTENT);
-        boolean open = content != null && !content.isHidden() && !feature.getChoices().isEmpty();
+        boolean open = feature.isChoiceShown() && !feature.getChoices().isEmpty();
 
-        FontMetrics metrics = graphics.getFontMetrics();
-        int width = ComponentConstants.STANDARD_WIDTH;
-        for (TaskChoiceOddsFeature.Row row : open ? feature.getOfferRows() : feature.getTakenRows())
+        List<TaskChoiceOddsFeature.Row> rows = open ? feature.getOfferRows() : feature.getTakenRows();
+        for (TaskChoiceOddsFeature.Row row : rows)
         {
-            width = Math.max(width, addEntry(metrics, row.choice, row.picked ? Color.GREEN : Color.WHITE));
+            addEntry(row.choice, row.picked ? Color.GREEN : Color.WHITE);
         }
 
         if (panelComponent.getChildren().isEmpty())
@@ -92,20 +96,27 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             return null;
         }
 
+        FontMetrics metrics = graphics.getFontMetrics();
+        if (rows != widthRows || !metrics.getFont().equals(widthFont))
+        {
+            width = measure(metrics, rows);
+            widthRows = rows;
+            widthFont = metrics.getFont();
+        }
         panelComponent.setPreferredSize(new Dimension(width, 0));
         return super.render(graphics);
     }
 
     /**
-     * Adds a task's three rows, under the title if they are the first, and
-     * returns the panel width they need, or 0 for a task with no entry.
+     * Adds a task's three rows, under the title if they are the first; a task
+     * with no entry adds nothing.
      */
-    private int addEntry(FontMetrics metrics, TaskChoiceOddsFeature.Choice choice, Color nameColor)
+    private void addEntry(TaskChoiceOddsFeature.Choice choice, Color nameColor)
     {
-        MortimerTaskGuide.Entry entry = MortimerTaskGuide.forTask(choice.taskId);
+        MortimerTask entry = MortimerTask.forId(choice.taskId);
         if (entry == null)
         {
-            return 0;
+            return;
         }
         if (panelComponent.getChildren().isEmpty())
         {
@@ -113,15 +124,12 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
                 .text("Task Areas")
                 .build());
         }
-        int width = addLine(metrics, choice.name, entry.method, nameColor);
-        width = Math.max(width, addLine(metrics, entry.area, "", Color.LIGHT_GRAY));
-        return Math.max(width, addLine(metrics, entry.travel, "", Color.LIGHT_GRAY));
+        addLine(choice.name, entry.method, nameColor);
+        addLine(entry.area, "", Color.LIGHT_GRAY);
+        addLine(entry.travel, "", Color.LIGHT_GRAY);
     }
 
-    /**
-     * Adds a row and returns the panel width that keeps it on one line.
-     */
-    private int addLine(FontMetrics metrics, String left, String right, Color color)
+    private void addLine(String left, String right, Color color)
     {
         panelComponent.getChildren().add(LineComponent.builder()
             .left(left)
@@ -129,6 +137,30 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             .right(right)
             .rightColor(color)
             .build());
+    }
+
+    /**
+     * The panel width that keeps every row of the given tasks on one line.
+     */
+    private static int measure(FontMetrics metrics, List<TaskChoiceOddsFeature.Row> rows)
+    {
+        int width = ComponentConstants.STANDARD_WIDTH;
+        for (TaskChoiceOddsFeature.Row row : rows)
+        {
+            MortimerTask entry = MortimerTask.forId(row.choice.taskId);
+            if (entry == null)
+            {
+                continue;
+            }
+            width = Math.max(width, lineWidth(metrics, row.choice.name, entry.method));
+            width = Math.max(width, lineWidth(metrics, entry.area, ""));
+            width = Math.max(width, lineWidth(metrics, entry.travel, ""));
+        }
+        return width;
+    }
+
+    private static int lineWidth(FontMetrics metrics, String left, String right)
+    {
         return metrics.stringWidth(left) + metrics.stringWidth(right) + 4 * ComponentConstants.STANDARD_BORDER;
     }
 }

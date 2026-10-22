@@ -24,6 +24,7 @@
  */
 package com.vividflash.slayer;
 
+import com.vividflash.slayer.features.MortimerTask;
 import java.awt.Color;
 import net.runelite.client.config.Config;
 import net.runelite.client.config.ConfigGroup;
@@ -32,9 +33,11 @@ import net.runelite.client.config.ConfigSection;
 import net.runelite.client.config.Range;
 import net.runelite.client.config.Units;
 
-@ConfigGroup("vividflashslayer")
+@ConfigGroup(SlayerConfig.GROUP)
 public interface SlayerConfig extends Config
 {
+    String GROUP = "vividflashslayer";
+
     @ConfigSection(
         name = "Slayer Master Rules",
         description = "",
@@ -152,7 +155,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphCrawlingHands()
     {
-        return 1500;
+        return MortimerTask.CRAWLING_HANDS.defaultKph;
     }
 
     @ConfigItem(
@@ -166,7 +169,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphCaveCrawlers()
     {
-        return 1300;
+        return MortimerTask.CAVE_CRAWLERS.defaultKph;
     }
 
     @ConfigItem(
@@ -180,7 +183,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphBanshees()
     {
-        return 1300;
+        return MortimerTask.BANSHEES.defaultKph;
     }
 
     @ConfigItem(
@@ -194,7 +197,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphRockslugs()
     {
-        return 600;
+        return MortimerTask.ROCKSLUGS.defaultKph;
     }
 
     @ConfigItem(
@@ -208,7 +211,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphCockatrice()
     {
-        return 770;
+        return MortimerTask.COCKATRICE.defaultKph;
     }
 
     @ConfigItem(
@@ -222,7 +225,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphPyrefiends()
     {
-        return 630;
+        return MortimerTask.PYREFIENDS.defaultKph;
     }
 
     @ConfigItem(
@@ -236,7 +239,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphInfernalMages()
     {
-        return 475;
+        return MortimerTask.INFERNAL_MAGES.defaultKph;
     }
 
     @ConfigItem(
@@ -250,7 +253,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphBasilisks()
     {
-        return 200;
+        return MortimerTask.BASILISKS.defaultKph;
     }
 
     @ConfigItem(
@@ -264,7 +267,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphBasiliskKnights()
     {
-        return 92;
+        return MortimerTask.BASILISK_KNIGHTS.defaultKph;
     }
 
     @ConfigItem(
@@ -290,7 +293,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphBloodveld()
     {
-        return 700;
+        return MortimerTask.BLOODVELD.defaultKph;
     }
 
     @ConfigItem(
@@ -304,7 +307,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphGryphons()
     {
-        return 455;
+        return MortimerTask.GRYPHONS.defaultKph;
     }
 
     @ConfigItem(
@@ -318,7 +321,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphJellies()
     {
-        return 400;
+        return MortimerTask.JELLIES.defaultKph;
     }
 
     @ConfigItem(
@@ -332,7 +335,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphCustodianStalkers()
     {
-        return 400;
+        return MortimerTask.CUSTODIAN_STALKERS.defaultKph;
     }
 
     @ConfigItem(
@@ -346,7 +349,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphTuroth()
     {
-        return 183;
+        return MortimerTask.TUROTH.defaultKph;
     }
 
     @ConfigItem(
@@ -360,7 +363,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphWarpedCreatures()
     {
-        return 365;
+        return MortimerTask.WARPED_CREATURES.defaultKph;
     }
 
     @ConfigItem(
@@ -374,7 +377,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphCaveHorrors()
     {
-        return 455;
+        return MortimerTask.CAVE_HORRORS.defaultKph;
     }
 
     @ConfigItem(
@@ -388,7 +391,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphAberrantSpectres()
     {
-        return 390;
+        return MortimerTask.ABERRANT_SPECTRES.defaultKph;
     }
 
     @ConfigItem(
@@ -402,7 +405,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphWyrms()
     {
-        return 815;
+        return MortimerTask.WYRMS.defaultKph;
     }
 
     @ConfigItem(
@@ -416,7 +419,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphDustDevils()
     {
-        return 800;
+        return MortimerTask.DUST_DEVILS.defaultKph;
     }
 
     @ConfigItem(
@@ -430,7 +433,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphKurask()
     {
-        return 180;
+        return MortimerTask.KURASK.defaultKph;
     }
 
     @ConfigItem(
@@ -444,7 +447,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphVenators()
     {
-        return 85;
+        return MortimerTask.VENATORS.defaultKph;
     }
 
     @ConfigItem(
@@ -458,7 +461,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphGargoyles()
     {
-        return 285;
+        return MortimerTask.GARGOYLES.defaultKph;
     }
 
     @ConfigItem(
@@ -472,7 +475,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphAquanites()
     {
-        return 165;
+        return MortimerTask.AQUANITES.defaultKph;
     }
 
     @ConfigItem(
@@ -486,7 +489,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphNechryael()
     {
-        return 475;
+        return MortimerTask.NECHRYAEL.defaultKph;
     }
 
     @ConfigItem(
@@ -500,7 +503,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphDrakes()
     {
-        return 150;
+        return MortimerTask.DRAKES.defaultKph;
     }
 
     @ConfigItem(
@@ -514,7 +517,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphAbyssalDemons()
     {
-        return 535;
+        return MortimerTask.ABYSSAL_DEMONS.defaultKph;
     }
 
     @ConfigItem(
@@ -528,7 +531,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphDarkBeasts()
     {
-        return 190;
+        return MortimerTask.DARK_BEASTS.defaultKph;
     }
 
     @ConfigItem(
@@ -542,7 +545,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphAraxytes()
     {
-        return 600;
+        return MortimerTask.ARAXYTES.defaultKph;
     }
 
     @ConfigItem(
@@ -556,7 +559,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphSmokeDevils()
     {
-        return 810;
+        return MortimerTask.SMOKE_DEVILS.defaultKph;
     }
 
     @ConfigItem(
@@ -570,7 +573,7 @@ public interface SlayerConfig extends Config
     @Units("/h")
     default int kphHydras()
     {
-        return 100;
+        return MortimerTask.HYDRAS.defaultKph;
     }
 
     @ConfigItem(

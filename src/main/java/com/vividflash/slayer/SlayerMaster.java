@@ -24,7 +24,12 @@
  */
 package com.vividflash.slayer;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import net.runelite.api.NPC;
+import net.runelite.api.NPCComposition;
 import net.runelite.api.gameval.NpcID;
 
 /**
@@ -45,6 +50,28 @@ public enum SlayerMaster
     DURADEL("Duradel", 15, "Kuradal"),
     KRYSTILIA("Krystilia", 25, true),
     MORTIMER("Mortimer", 0, true);
+
+    private static final SlayerMaster[] MASTERS = values();
+
+    /**
+     * Every NPC that offers an Assignment option, taken from the game cache,
+     * plus the multi-NPC parents that turn into one, so the gate holds whether
+     * the id is the parent or the transformed one. Quest, cutscene and
+     * follower copies of a master have no Assignment and are left out. Any
+     * other id skips the name lookup.
+     */
+    private static final Set<Integer> NPC_IDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
+        NpcID.SLAYER_MASTER_1, NpcID.SLAYER_MASTER_1_TUREAL, NpcID.SLAYER_MASTER_1_AYA,
+        NpcID.SLAYER_MASTER_9, NpcID.SLAYER_MASTER_9_ACTIVE,
+        NpcID.SLAYER_MASTER_2, NpcID.SLAYER_MASTER_2_MAZCHNA,
+        NpcID.SLAYER_MASTER_2_ACHTRYN, NpcID.SLAYER_MASTER_2_ACHTRYN_VIS,
+        NpcID.SLAYER_MASTER_3,
+        NpcID.SLAYER_MASTER_4,
+        NpcID.SLAYER_MASTER_8,
+        NpcID.SLAYER_MASTER_6, NpcID.SLAYER_MASTER_NIEVE, NpcID.SLAYER_MASTER_STEVE,
+        NpcID.SLAYER_MASTER_5, NpcID.SLAYER_MASTER_5_DURADEL, NpcID.SLAYER_MASTER_5_KURADAL,
+        NpcID.SLAYER_MASTER_7,
+        NpcID.SLAYER_MASTER_MORTIMER, NpcID.SLAYER_MASTER_MORTIMER_VIS)));
 
     private final String displayName;
     private final int basePoints;
@@ -128,7 +155,8 @@ public enum SlayerMaster
     }
 
     /**
-     * Mortimer is matched by id, everyone else by name.
+     * Mortimer is matched by id, everyone else by name. An id outside the
+     * known master NPCs returns null without a name lookup.
      */
     public static SlayerMaster forNpc(NPC npc)
     {
@@ -137,6 +165,20 @@ public enum SlayerMaster
             return null;
         }
         int id = npc.getId();
+        if (!NPC_IDS.contains(id))
+        {
+            return null;
+        }
+        if (id == NpcID.SLAYER_MASTER_9)
+        {
+            // Spria's parent shows a Talk-to only quest Spria until Porcine of
+            // Interest is done.
+            NPCComposition shown = npc.getTransformedComposition();
+            if (shown == null || shown.getId() != NpcID.SLAYER_MASTER_9_ACTIVE)
+            {
+                return null;
+            }
+        }
         if (id == NpcID.SLAYER_MASTER_MORTIMER || id == NpcID.SLAYER_MASTER_MORTIMER_VIS)
         {
             return MORTIMER;
@@ -146,7 +188,7 @@ public enum SlayerMaster
 
     public static SlayerMaster forNpc(String npcName)
     {
-        for (SlayerMaster master : values())
+        for (SlayerMaster master : MASTERS)
         {
             if (master.matchesNpcName(npcName))
             {

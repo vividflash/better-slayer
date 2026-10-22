@@ -28,11 +28,12 @@ import com.vividflash.slayer.SlayerConfig;
 import com.vividflash.slayer.UniqueOddsMode;
 import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontMetrics;
 import java.awt.Graphics2D;
+import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import net.runelite.api.Client;
-import net.runelite.api.widgets.Widget;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -49,14 +50,24 @@ import net.runelite.client.util.Text;
 @Singleton
 public class TaskChoiceOddsOverlay extends OverlayPanel
 {
-    private final Client client;
     private final SlayerConfig config;
     private final TaskChoiceOddsFeature feature;
 
+    /**
+     * The panel texts and width, built once for the rows, odds mode, overhead
+     * and font they were worked out from, and again when any of those changes.
+     */
+    private List<TaskChoiceOddsFeature.Row> textRows;
+    private UniqueOddsMode textMode;
+    private int textOverhead;
+    private Font textFont;
+    private String title;
+    private String[] oddsTexts;
+    private int width;
+
     @Inject
-    TaskChoiceOddsOverlay(Client client, SlayerConfig config, TaskChoiceOddsFeature feature)
+    TaskChoiceOddsOverlay(SlayerConfig config, TaskChoiceOddsFeature feature)
     {
-        this.client = client;
         this.config = config;
         this.feature = feature;
         setPosition(OverlayPosition.TOP_LEFT);
@@ -69,31 +80,39 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!config.taskChoiceOddsDisplay().showsPanel() || feature.getChoices().isEmpty())
+        if (!feature.isChoiceShown() || feature.getChoices().isEmpty()
+            || !config.taskChoiceOddsDisplay().showsPanel())
         {
             return null;
         }
 
-        Widget content = client.getWidget(TaskChoiceOddsFeature.TASK_CHOICE_CONTENT);
-        if (content == null || content.isHidden())
-        {
-            return null;
-        }
-
+        List<TaskChoiceOddsFeature.Row> rows = feature.getOfferRows();
         UniqueOddsMode mode = config.taskChoiceOddsMode();
+        int overhead = config.taskChoiceOverhead();
+        FontMetrics metrics = graphics.getFontMetrics();
+        if (rows != textRows || mode != textMode || overhead != textOverhead
+            || !metrics.getFont().equals(textFont))
+        {
+            buildTexts(metrics, rows, mode);
+            textRows = rows;
+            textMode = mode;
+            textOverhead = overhead;
+            textFont = metrics.getFont();
+        }
 
-        // The dropdown says "Slayer Unique Roll"; next to his interface the "Slayer" is redundant.
-        String title = mode == UniqueOddsMode.SLAYER_UNIQUE_ROLL ? "Unique Roll" : Text.titleCase(mode);
         panelComponent.getChildren().add(TitleComponent.builder()
             .text(title)
             .build());
-
-        // A title is centered and never wraps, so one wider than the panel is cut off at both ends.
-        int width = Math.max(ComponentConstants.STANDARD_WIDTH,
-            graphics.getFontMetrics().stringWidth(title) + 4 * ComponentConstants.STANDARD_BORDER);
-        for (TaskChoiceOddsFeature.Row row : feature.getOfferRows())
+        for (int i = 0; i < rows.size(); i++)
         {
-            width = Math.max(width, addChoice(graphics, mode, row.choice, row.picked ? Color.GREEN : Color.WHITE));
+            TaskChoiceOddsFeature.Row row = rows.get(i);
+            Color color = row.picked ? Color.GREEN : Color.WHITE;
+            panelComponent.getChildren().add(LineComponent.builder()
+                .left(row.choice.name)
+                .leftColor(color)
+                .right(oddsTexts[i])
+                .rightColor(color)
+                .build());
         }
 
         panelComponent.setPreferredSize(new Dimension(width, 0));
@@ -101,10 +120,29 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
     }
 
     /**
-     * Adds a task's row and returns the panel width that keeps it on one
-     * line, since it would wrap at the standard width.
+     * Works out the title, each row's odds text and the panel width that
+     * keeps every row on one line, since a row would wrap at the standard
+     * width.
      */
-    private int addChoice(Graphics2D graphics, UniqueOddsMode mode, TaskChoiceOddsFeature.Choice choice, Color color)
+    private void buildTexts(FontMetrics metrics, List<TaskChoiceOddsFeature.Row> rows, UniqueOddsMode mode)
+    {
+        // The dropdown says "Slayer Unique Roll"; next to his interface the "Slayer" is redundant.
+        title = mode == UniqueOddsMode.SLAYER_UNIQUE_ROLL ? "Unique Roll" : Text.titleCase(mode);
+
+        // A title is centered and never wraps, so one wider than the panel is cut off at both ends.
+        width = Math.max(ComponentConstants.STANDARD_WIDTH,
+            metrics.stringWidth(title) + 4 * ComponentConstants.STANDARD_BORDER);
+        oddsTexts = new String[rows.size()];
+        for (int i = 0; i < rows.size(); i++)
+        {
+            TaskChoiceOddsFeature.Choice choice = rows.get(i).choice;
+            oddsTexts[i] = oddsText(mode, choice);
+            width = Math.max(width, metrics.stringWidth(choice.name + "  " + oddsTexts[i])
+                + 2 * ComponentConstants.STANDARD_BORDER);
+        }
+    }
+
+    private String oddsText(UniqueOddsMode mode, TaskChoiceOddsFeature.Choice choice)
     {
         double chance = choice.uniqueTableChance * mode.getPerSuperiorFactor();
 
@@ -128,14 +166,6 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
 
         double hours = feature.estimatedHours(choice);
         odds += Double.isNaN(hours) ? ", ? min" : ", " + Math.round(hours * 60) + " min";
-
-        panelComponent.getChildren().add(LineComponent.builder()
-            .left(choice.name)
-            .leftColor(color)
-            .right(odds)
-            .rightColor(color)
-            .build());
-        return graphics.getFontMetrics().stringWidth(choice.name + "  " + odds)
-            + 2 * ComponentConstants.STANDARD_BORDER;
+        return odds;
     }
 }

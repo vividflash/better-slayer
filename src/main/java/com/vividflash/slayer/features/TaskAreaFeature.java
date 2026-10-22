@@ -29,6 +29,7 @@ import java.awt.Color;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.ChatMessageType;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
@@ -37,6 +38,7 @@ import net.runelite.api.events.GameTick;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.gameval.DBTableID;
 import net.runelite.api.gameval.VarPlayerID;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.util.ColorUtil;
@@ -46,6 +48,7 @@ import net.runelite.client.util.ColorUtil;
  * area comes from a server-synced varp resolved against the slayer area
  * table, so nothing is parsed from her dialogue.
  */
+@Slf4j
 @Singleton
 public class TaskAreaFeature implements Feature
 {
@@ -54,6 +57,9 @@ public class TaskAreaFeature implements Feature
 
     @Inject
     private Client client;
+
+    @Inject
+    private ClientThread clientThread;
 
     @Inject
     private EventBus eventBus;
@@ -67,14 +73,20 @@ public class TaskAreaFeature implements Feature
     @Override
     public void startUp()
     {
+        if (log.isDebugEnabled())
+        {
+            log.debug("[config] showTaskArea={}", config.showTaskArea());
+        }
         eventBus.register(this);
     }
 
     @Override
     public void shutDown()
     {
-        loginSync = false;
+        // Off the bus first, then the flag is reset on the client thread,
+        // where the handlers read it.
         eventBus.unregister(this);
+        clientThread.invoke(() -> loginSync = false);
     }
 
     @Subscribe
@@ -84,6 +96,10 @@ public class TaskAreaFeature implements Feature
         if (state == GameState.LOGGING_IN || state == GameState.HOPPING || state == GameState.CONNECTION_LOST)
         {
             loginSync = true;
+            if (log.isDebugEnabled())
+            {
+                log.debug("[state] game state {}, area announce paused until next tick", state);
+            }
         }
     }
 
@@ -103,13 +119,26 @@ public class TaskAreaFeature implements Feature
 
         if (loginSync || !config.showTaskArea())
         {
+            if (log.isDebugEnabled())
+            {
+                log.debug("[area] varp changed, not announced loginSync={} showTaskArea={}", loginSync, config.showTaskArea());
+            }
             return;
         }
 
         String areaName = lookupArea();
         if (areaName == null)
         {
+            if (log.isDebugEnabled())
+            {
+                log.debug("[area] varp changed to {}, no area name resolved", client.getVarpValue(VarPlayerID.SLAYER_AREA));
+            }
             return;
+        }
+
+        if (log.isDebugEnabled())
+        {
+            log.debug("[area] announced id={} name={}", client.getVarpValue(VarPlayerID.SLAYER_AREA), areaName);
         }
 
         client.addChatMessage(ChatMessageType.GAMEMESSAGE, "",

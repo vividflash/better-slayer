@@ -29,8 +29,10 @@ import com.vividflash.slayer.SlayerMaster;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import lombok.extern.slf4j.Slf4j;
@@ -92,7 +94,7 @@ public class TaskChoiceOddsFeature implements Feature
     };
 
     /** Container on the task-choice interface where the entries are built. */
-    static final int TASK_CHOICE_CONTENT = InterfaceID.SlayerTaskChoice.CONTENT;
+    private static final int TASK_CHOICE_CONTENT = InterfaceID.SlayerTaskChoice.CONTENT;
 
     /** Indexes into the task row for stat requirements and display name. */
     private static final int TASK_STAT_REQ_COLUMN = 2;
@@ -112,7 +114,6 @@ public class TaskChoiceOddsFeature implements Feature
     /** Mortimer's id in the master column of the master task table. */
     private static final int MORTIMER_MASTER_ID = 10;
 
-    private static final String CONFIG_GROUP = "vividflashslayer";
     private static final String RECALCULATE_KEY = "taskChoiceRecalculate";
     private static final String BASELINE_KEY = "taskChoiceBaseline";
 
@@ -162,7 +163,7 @@ public class TaskChoiceOddsFeature implements Feature
 
         /**
          * Slayer task id, -1 when the slot could not be resolved, or a
-         * {@link MortimerTaskGuide} key for a row that is no offer of its own.
+         * {@link MortimerTask} key for a row that is no offer of its own.
          */
         public final int taskId;
 
@@ -213,53 +214,163 @@ public class TaskChoiceOddsFeature implements Feature
     private MasterRulesFeature masterRulesFeature;
 
     private final List<Choice> choices = new ArrayList<>();
+    private final List<Choice> choicesView = Collections.unmodifiableList(choices);
 
     /** The offers as his window last showed them, kept past its closing. */
     private List<Choice> lastOffered = new ArrayList<>();
+    /** Set when the offers are read again, until his open window has copied them. */
+    private boolean offersChanged;
+    /** Stamped on each game tick his window is shown, and when it loads. */
     private Instant lastOpen = Instant.EPOCH;
     /** The offer the player took, for the area panel to keep showing. */
     private Choice taken;
     /** When the player left Mortimer with that task; null while still beside him. */
     private Instant leftAt;
+    /** The taken task's panel rows while the area panel is to show them, kept per tick. */
+    private List<Row> takenRows = Collections.emptyList();
+    /** The taken task those rows were built for; null while there are none. */
+    private Choice takenRowsFor;
+    /** The offers as panel rows and the pick among them; null until built after a change. */
+    private List<Row> offerRows;
+    private int pickIndex;
 
     /** The best option's name widget, once found in the open interface. */
     private Widget bestName;
-    /** Set when his interface loads; cleared once its widgets are gone. */
+    /** Set when his interface loads; cleared once its widgets are gone, on logout and on shutdown. */
     private boolean choiceInterfaceLoaded;
+    /** Whether his window was shown on the last client tick. */
+    private boolean choiceShown;
     /** The color that widget had before it was marked. */
     private int bestNameColor;
+    /** The search for that widget found nothing this game tick; it is tried again on the next. */
+    private boolean nameSearchFailed;
+
+    /** Volatile because startUp and shutDown run off the client thread. */
+    private volatile boolean running;
+    /** A refresh is queued on the client thread and has not run yet. */
+    private final AtomicBoolean refreshQueued = new AtomicBoolean();
 
     @Override
     public void startUp()
     {
+        if (log.isDebugEnabled())
+        {
+            log.debug("[config] display={} oddsMode={} pickMode={} overhead={} showAreas={} areaRetain={} knightsForPick={}",
+                config.taskChoiceOddsDisplay(), config.taskChoiceOddsMode(), config.taskChoicePickMode(),
+                config.taskChoiceOverhead(), config.taskChoiceShowAreas(), config.taskChoiceAreaRetain(),
+                config.basiliskKnightsForPick());
+        }
         // The recalculate checkbox stands in for a button, so it never stays
         // ticked across a restart.
-        configManager.setConfiguration(CONFIG_GROUP, RECALCULATE_KEY, false);
+        configManager.setConfiguration(SlayerConfig.GROUP, RECALCULATE_KEY, false);
+        running = true;
         eventBus.register(this);
         overlayManager.add(overlay);
         overlayManager.add(guideOverlay);
-        clientThread.invokeLater(this::refresh);
+        clientThread.invokeLater(() ->
+        {
+            if (!running)
+            {
+                return;
+            }
+            // His interface may already be open, which loads no widget again;
+            // the next client tick clears this when it is not.
+            choiceInterfaceLoaded = true;
+            refresh();
+        });
     }
 
     @Override
     public void shutDown()
     {
+        // Off the bus first, then the state is reset on the client thread,
+        // where the handlers and the overlays read it.
+        running = false;
+        eventBus.unregister(this);
         overlayManager.remove(overlay);
         overlayManager.remove(guideOverlay);
-        choices.clear();
-        lastOffered = new ArrayList<>();
-        taken = null;
-        eventBus.unregister(this);
-        configManager.setConfiguration(CONFIG_GROUP, RECALCULATE_KEY, false);
+        clientThread.invoke(() ->
+        {
+            choices.clear();
+            lastOffered = new ArrayList<>();
+            offersChanged = false;
+            lastOpen = Instant.EPOCH;
+            taken = null;
+            takenRows = Collections.emptyList();
+            takenRowsFor = null;
+            offerRows = null;
+            choiceInterfaceLoaded = false;
+            choiceShown = false;
+        });
+        configManager.setConfiguration(SlayerConfig.GROUP, RECALCULATE_KEY, false);
+    }
+
+    /**
+     * Reads the offers again once the current batch of changes is in. Several
+     * slot varbits change together when the offers change, and one read
+     * covers them all.
+     */
+    private void scheduleRefresh()
+    {
+        if (!refreshQueued.compareAndSet(false, true))
+        {
+            return;
+        }
+        clientThread.invokeLater(() ->
+        {
+            refreshQueued.set(false);
+            if (running)
+            {
+                refresh();
+            }
+        });
     }
 
     public List<Choice> getChoices()
     {
-        return choices;
+        return choicesView;
     }
 
     /** Index into {@link #getChoices()} of the configured mode's pick, or -1. */
     public int getPickIndex()
+    {
+        if (offerRows == null)
+        {
+            buildOfferRows();
+        }
+        return pickIndex;
+    }
+
+    /** The offered tasks as panel rows, the pick marked. */
+    public List<Row> getOfferRows()
+    {
+        if (offerRows == null)
+        {
+            buildOfferRows();
+        }
+        return offerRows;
+    }
+
+    /**
+     * Works the pick and the rows out again once after the offers, the tasks
+     * completed count or a setting changed.
+     */
+    private void buildOfferRows()
+    {
+        pickIndex = scorePick();
+        List<Row> rows = new ArrayList<>();
+        for (int i = 0; i < choices.size(); i++)
+        {
+            addRows(rows, choices.get(i), i == pickIndex);
+        }
+        offerRows = rows;
+        if (log.isDebugEnabled())
+        {
+            log.debug("[pick] offer rows built, offers={} pick={}", choices.size(), pickIndex + 1);
+        }
+    }
+
+    private int scorePick()
     {
         List<Choice> scored = choices;
         if (config.basiliskKnightsForPick())
@@ -276,16 +387,16 @@ public class TaskChoiceOddsFeature implements Feature
             config.taskChoiceOverhead(), baseline());
     }
 
-    /** The offered tasks as panel rows, the pick marked. */
-    public List<Row> getOfferRows()
+    /** Whether his choice interface is loaded; its widgets may still be hidden. */
+    public boolean isChoiceInterfaceLoaded()
     {
-        List<Row> rows = new ArrayList<>();
-        int best = getPickIndex();
-        for (int i = 0; i < choices.size(); i++)
-        {
-            addRows(rows, choices.get(i), i == best);
-        }
-        return rows;
+        return choiceInterfaceLoaded;
+    }
+
+    /** Whether his window was shown on the last client tick. */
+    public boolean isChoiceShown()
+    {
+        return choiceShown;
     }
 
     /** Whether the current task is one taken from his window this session. */
@@ -300,14 +411,40 @@ public class TaskChoiceOddsFeature implements Feature
      */
     public List<Row> getTakenRows()
     {
-        List<Row> rows = new ArrayList<>();
-        if (taken != null && (leftAt == null
-            || Instant.now().isBefore(leftAt.plusSeconds(Math.max(10, config.taskChoiceAreaRetain())))))
+        return takenRows;
+    }
+
+    /**
+     * Builds the taken task's rows again when the task or whether it is still
+     * shown has changed, or always when asked to, after a setting change.
+     */
+    private void updateTakenRows(boolean rebuild)
+    {
+        Choice shown = taken != null && (leftAt == null
+            || Instant.now().isBefore(leftAt.plusSeconds(Math.max(10, config.taskChoiceAreaRetain()))))
+            ? taken : null;
+        if (!rebuild && shown == takenRowsFor)
         {
-            // A lone row needs no mark; of the two basilisk rows one does.
-            addRows(rows, taken, knightsVariant(taken) != null);
+            return;
         }
-        return rows;
+        takenRowsFor = shown;
+        if (shown == null)
+        {
+            if (!takenRows.isEmpty())
+            {
+                log.debug("[taken] area rows cleared");
+            }
+            takenRows = Collections.emptyList();
+            return;
+        }
+        List<Row> rows = new ArrayList<>();
+        // A lone row needs no mark; of the two basilisk rows one does.
+        addRows(rows, shown, knightsVariant(shown) != null);
+        takenRows = rows;
+        if (log.isDebugEnabled())
+        {
+            log.debug("[taken] area rows built for {}", shown.name);
+        }
     }
 
     /** Of a basilisk offer's two rows, the pick goes to the one it was worked out from. */
@@ -341,7 +478,7 @@ public class TaskChoiceOddsFeature implements Feature
         {
             return null;
         }
-        return new Choice(MortimerTaskGuide.BASILISK_KNIGHTS, "Basilisk Knights",
+        return new Choice(MortimerTask.BASILISK_KNIGHTS.id, "Basilisk Knights",
             baseUniqueChanceAt(BASILISK_KNIGHT_LEVEL) * (1 + choice.uniqueModifierPercent / 100.0),
             choice.uniqueModifierPercent, choice.expectedQuantity, config.kphBasiliskKnights(), false);
     }
@@ -349,7 +486,7 @@ public class TaskChoiceOddsFeature implements Feature
     /** The stored long-run rate, or the bundled one when none is stored. */
     private double baseline()
     {
-        String stored = configManager.getConfiguration(CONFIG_GROUP, BASELINE_KEY);
+        String stored = configManager.getConfiguration(SlayerConfig.GROUP, BASELINE_KEY);
         if (stored != null)
         {
             try
@@ -365,7 +502,7 @@ public class TaskChoiceOddsFeature implements Feature
                 // falls through to the bundled rate
             }
         }
-        return MortimerTaskSpeed.BASELINE;
+        return MortimerTask.BASELINE;
     }
 
     @Subscribe
@@ -376,6 +513,11 @@ public class TaskChoiceOddsFeature implements Feature
         {
             noteTakenTask();
         }
+        if (varp == VarPlayerID.SLAYER_MORTIMER_TASKS_COMPLETED)
+        {
+            // The pick weighs the tasks completed count, which runs no refresh.
+            offerRows = null;
+        }
 
         int id = event.getVarbitId();
         for (int slot = 0; slot < CHOICE_TASK_VARBITS.length; slot++)
@@ -384,7 +526,7 @@ public class TaskChoiceOddsFeature implements Feature
                 || id == CHOICE_MODIFIER_VALUE_VARBITS[slot]
                 || id == CHOICE_MODIFIER_NEGATIVE_VARBITS[slot])
             {
-                refresh();
+                scheduleRefresh();
                 return;
             }
         }
@@ -401,7 +543,12 @@ public class TaskChoiceOddsFeature implements Feature
         int target = client.getVarpValue(VarPlayerID.SLAYER_TARGET);
         if (taken != null && (count <= 0 || target != taken.taskId))
         {
+            if (log.isDebugEnabled())
+            {
+                log.debug("[taken] dropped {}, count={} target={}", taken.name, count, target);
+            }
             taken = null;
+            updateTakenRows(false);
         }
         if (taken != null || count <= 0 || Instant.now().isAfter(lastOpen.plus(TAKEN_WINDOW)))
         {
@@ -413,6 +560,11 @@ public class TaskChoiceOddsFeature implements Feature
             {
                 taken = choice;
                 leftAt = null;
+                if (log.isDebugEnabled())
+                {
+                    log.debug("[taken] {} taken from the window, count={}", choice.name, count);
+                }
+                updateTakenRows(false);
                 return;
             }
         }
@@ -421,10 +573,20 @@ public class TaskChoiceOddsFeature implements Feature
     @Subscribe
     public void onGameTick(GameTick event)
     {
+        nameSearchFailed = false;
+        if (choiceShown)
+        {
+            lastOpen = Instant.now();
+        }
         if (taken != null && leftAt == null && !isMortimerNear())
         {
             leftAt = Instant.now();
+            if (log.isDebugEnabled())
+            {
+                log.debug("[taken] left Mortimer with {}", taken.name);
+            }
         }
+        updateTakenRows(false);
     }
 
     private boolean isMortimerNear()
@@ -448,16 +610,28 @@ public class TaskChoiceOddsFeature implements Feature
     @Subscribe
     public void onGameStateChanged(GameStateChanged event)
     {
-        if (event.getGameState() == GameState.LOGIN_SCREEN)
+        GameState state = event.getGameState();
+        if (state == GameState.HOPPING || state == GameState.LOGIN_SCREEN)
         {
+            // The varps are sent again on login, which must not count as a
+            // task taken from a window open just before the hop.
+            lastOpen = Instant.EPOCH;
+            choiceShown = false;
+        }
+        if (state == GameState.LOGIN_SCREEN)
+        {
+            log.debug("[state] login screen, taken task cleared");
             taken = null;
+            choiceInterfaceLoaded = false;
+            offerRows = null;
+            updateTakenRows(false);
         }
     }
 
     @Subscribe
     public void onConfigChanged(ConfigChanged event)
     {
-        if (!CONFIG_GROUP.equals(event.getGroup()))
+        if (!SlayerConfig.GROUP.equals(event.getGroup()))
         {
             return;
         }
@@ -465,11 +639,22 @@ public class TaskChoiceOddsFeature implements Feature
         {
             if (Boolean.parseBoolean(event.getNewValue()))
             {
-                clientThread.invokeLater(this::recalculateBaseline);
+                log.debug("[baseline] recalculation requested");
+                clientThread.invokeLater(() ->
+                {
+                    if (running)
+                    {
+                        recalculateBaseline();
+                    }
+                });
             }
             return;
         }
-        clientThread.invokeLater(this::refresh);
+        if (log.isDebugEnabled())
+        {
+            log.debug("[config] {} -> {}", event.getKey(), event.getNewValue());
+        }
+        scheduleRefresh();
     }
 
     /**
@@ -494,7 +679,7 @@ public class TaskChoiceOddsFeature implements Feature
                 int taskId = (Integer) client.getDBTableField(taskRow, DBTableID.SlayerTask.COL_ID, 0)[0];
                 double quantity = amount(row, taskRow);
                 boolean knights = taskId == BASILISKS_TASK && config.basiliskKnightsForPick();
-                int kph = knights ? config.kphBasiliskKnights() : MortimerTaskSpeed.killsPerHour(taskId, config);
+                int kph = knights ? config.kphBasiliskKnights() : MortimerTask.killsPerHour(taskId, config);
                 weights[i] = (Integer) client.getDBTableField(row, DBTableID.SlayerMasterTask.COL_WEIGHT, 0)[0];
                 rolls[i] = TaskPickScorer.rolls(quantity,
                     knights ? baseUniqueChanceAt(BASILISK_KNIGHT_LEVEL) : baseUniqueChance(taskRow));
@@ -504,13 +689,19 @@ public class TaskChoiceOddsFeature implements Feature
             double rate = n < 3 ? Double.NaN : TaskPickScorer.baseline(weights, rolls, hours);
             if (rate > 0 && !Double.isInfinite(rate))
             {
-                configManager.setConfiguration(CONFIG_GROUP, BASELINE_KEY, Double.toString(rate));
-                log.debug("Task choice baseline recalculated to {}", rate);
+                configManager.setConfiguration(SlayerConfig.GROUP, BASELINE_KEY, Double.toString(rate));
+                if (log.isDebugEnabled())
+                {
+                    log.debug("[baseline] recalculated to {}", rate);
+                }
             }
         }
         catch (RuntimeException e)
         {
-            log.debug("Task choice baseline not recalculated", e);
+            if (log.isDebugEnabled())
+            {
+                log.debug("[baseline] not recalculated", e);
+            }
         }
     }
 
@@ -520,14 +711,23 @@ public class TaskChoiceOddsFeature implements Feature
         if (event.getGroupId() == InterfaceID.SLAYER_TASK_CHOICE)
         {
             choiceInterfaceLoaded = true;
-            clientThread.invokeLater(this::refresh);
+            lastOpen = Instant.now();
+            if (log.isDebugEnabled())
+            {
+                log.debug("[choice] interface loaded, offers={}", choices.size());
+            }
+            scheduleRefresh();
         }
     }
 
     private void refresh()
     {
         choices.clear();
+        offerRows = null;
+        offersChanged = true;
         clearHighlight();
+        // Settings feed the taken task's rows too, and a change ends up here.
+        updateTakenRows(true);
         if (client.getGameState() != GameState.LOGGED_IN)
         {
             return;
@@ -541,7 +741,10 @@ public class TaskChoiceOddsFeature implements Feature
                 continue;
             }
             Choice choice = resolveChoice(slot, taskId);
-            log.debug("Task choice {}: task id {} is {}", slot + 1, taskId, choice.name);
+            if (log.isDebugEnabled())
+            {
+                log.debug("[choice] slot {}: task id {} is {}", slot + 1, taskId, choice.name);
+            }
             choices.add(choice);
         }
     }
@@ -564,9 +767,9 @@ public class TaskChoiceOddsFeature implements Feature
 
         // The odds are resolved on their own, so a task whose name is readable
         // keeps it even when the rest of its row is not.
-        int kph = MortimerTaskSpeed.killsPerHour(taskId, config);
+        int kph = MortimerTask.killsPerHour(taskId, config);
         return new Choice(taskId, name, uniqueTableChance(taskRow, uniquePercent), uniquePercent,
-            expectedQuantity(taskRow, quantityDelta), kph, MortimerTaskSpeed.isFastTask(taskId));
+            expectedQuantity(taskRow, quantityDelta), kph, MortimerTask.isFastTask(taskId));
     }
 
     /** Kills the task is expected to be assigned for, or NaN when unreadable. */
@@ -725,7 +928,7 @@ public class TaskChoiceOddsFeature implements Feature
         return baseUniqueChanceAt(slayerLevel(taskRow));
     }
 
-    private static double baseUniqueChanceAt(int slayerLevel)
+    static double baseUniqueChanceAt(int slayerLevel)
     {
         int scaled = slayerLevel + 55;
         int denominator = 200 - scaled * scaled / 125;
@@ -735,11 +938,11 @@ public class TaskChoiceOddsFeature implements Feature
     /**
      * Colors the best option's name inside Mortimer's interface. The rows are
      * script-built, so the name is found by its text rather than by a fixed
-     * child index. That search runs once per opening and the component is kept
+     * child index. That search runs once per opening, or once per game tick
+     * while it finds nothing, and the component is kept
      * for the color to be reapplied from, since the interface's own handling of
-     * the row can write over it. The old color is put back only when the pick
-     * moves while the interface is open, since the rows are built fresh each
-     * time it opens.
+     * the row can write over it. The old color is put back whenever the offers
+     * or settings are read again; the rows are built fresh each time it opens.
      */
     @Subscribe
     public void onClientTick(ClientTick event)
@@ -754,16 +957,20 @@ public class TaskChoiceOddsFeature implements Feature
         {
             choiceInterfaceLoaded = false;
         }
-        if (content == null || content.isHidden())
+        choiceShown = content != null && !content.isHidden();
+        if (!choiceShown)
         {
             bestName = null;
             return;
         }
 
-        lastOpen = Instant.now();
-        if (!choices.isEmpty() && !lastOffered.equals(choices))
+        if (offersChanged)
         {
-            lastOffered = new ArrayList<>(choices);
+            offersChanged = false;
+            if (!choices.isEmpty())
+            {
+                lastOffered = new ArrayList<>(choices);
+            }
         }
 
         if (!config.taskChoiceOddsDisplay().showsHighlight())
@@ -774,7 +981,7 @@ public class TaskChoiceOddsFeature implements Feature
         if (bestName == null)
         {
             int best = getPickIndex();
-            if (best == -1)
+            if (best == -1 || nameSearchFailed)
             {
                 return;
             }
@@ -782,6 +989,14 @@ public class TaskChoiceOddsFeature implements Feature
             if (bestName != null)
             {
                 bestNameColor = bestName.getTextColor();
+                if (log.isDebugEnabled())
+                {
+                    log.debug("[highlight] marked pick {} ({})", choices.get(best).name, best + 1);
+                }
+            }
+            else
+            {
+                nameSearchFailed = true;
             }
         }
 
@@ -798,6 +1013,7 @@ public class TaskChoiceOddsFeature implements Feature
             bestName.setTextColor(bestNameColor);
         }
         bestName = null;
+        nameSearchFailed = false;
     }
 
     /** The widget carrying a task's name, searched depth first, or null. */

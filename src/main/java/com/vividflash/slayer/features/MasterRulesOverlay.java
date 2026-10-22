@@ -63,7 +63,7 @@ public class MasterRulesOverlay extends OverlayPanel
     @Override
     public Dimension render(Graphics2D graphics)
     {
-        if (!config.masterRules() || !config.showOverlay() || feature.getNearbyMasters().isEmpty()
+        if (feature.getNearbyMasters().isEmpty() || !config.masterRules() || !config.showOverlay()
             || (config.hideOverlayDuringMortimerTask() && taskChoiceOddsFeature.isTakenTaskActive()))
         {
             return null;
