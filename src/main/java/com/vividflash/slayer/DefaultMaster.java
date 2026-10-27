@@ -24,12 +24,9 @@
  */
 package com.vividflash.slayer;
 
-/**
- * The Master Rules default dropdown: every master plus NONE, which leaves a
- * task without a matching rule unmarked and unblocked. The separate-streak
- * masters are offered here so the other masters can be marked and blocked
- * while working their streak.
- */
+// The Master Rules default dropdown: every master plus NONE, which leaves a task without a matching
+// rule unmarked and unblocked. The separate-streak masters are offered here so the other masters
+// can be marked and blocked while working their streak.
 public enum DefaultMaster
 {
     NONE(null),
@@ -51,7 +48,7 @@ public enum DefaultMaster
         this.master = master;
     }
 
-    /** Null for NONE. */
+    // Null for NONE.
     public SlayerMaster getMaster()
     {
         return master;

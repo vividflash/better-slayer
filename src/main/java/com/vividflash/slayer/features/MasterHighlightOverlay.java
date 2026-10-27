@@ -38,10 +38,8 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayUtil;
 
-/**
- * Outlines nearby slayer masters. The recommended one takes the "correct"
- * color and every other master the "wrong" color.
- */
+// Outlines nearby slayer masters. The recommended one takes the "correct" color and every other
+// master the "wrong" color.
 @Singleton
 public class MasterHighlightOverlay extends Overlay
 {

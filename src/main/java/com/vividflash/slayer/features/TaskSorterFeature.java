@@ -51,17 +51,13 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.util.Text;
 
-/**
- * Sorts the slayer task list interface (the "View tasks" list from the
- * slayer rewards screen) by displayed assignment weight or alphabetically,
- * with an optional reversed order.
- *
- * The list rows are dynamic children; they are grouped by their y position,
- * sorted, and re-laid-out onto the original row slots. Both the visual layer
- * and the clickable layer are moved the same way so clicks stay aligned.
- * If the interface doesn't look like the expected row structure, nothing is
- * touched.
- */
+// Sorts the slayer task list interface (the "View tasks" list from the slayer rewards screen) by
+// displayed assignment weight or alphabetically, with an optional reversed order.
+//
+// The list rows are dynamic children; they are grouped by their y position, sorted, and re-laid-out
+// onto the original row slots. Both the visual layer and the clickable layer are moved the same way
+// so clicks stay aligned. If the interface doesn't look like the expected row structure, nothing is
+// touched.
 @Slf4j
 @Singleton
 public class TaskSorterFeature implements Feature
@@ -71,35 +67,28 @@ public class TaskSorterFeature implements Feature
     // percentages; accept either as a row weight.
     private static final Pattern ODDS_FRACTION_PATTERN = Pattern.compile("(\\d+)\\s*/\\s*(\\d+)");
 
-    /** Volatile because startUp and shutDown run off the client thread. */
+    // Volatile because startUp and shutDown run off the client thread.
     private volatile boolean running;
 
-    /** Set when the task list interface loads; cleared once it is gone. */
+    // Set when the task list interface loads; cleared once it is gone.
     private boolean rewardsLoaded;
 
-    /** A rejected row layout is logged once per opening, not on every tick it is rechecked. */
+    // A rejected row layout is logged once per opening, not on every tick it is rechecked.
     private boolean rejectLogged;
 
-    /**
-     * Layout of the list as we last left it: every row widget's text and y
-     * in child order. Our own sort changes the y values, so it is taken again
-     * after sorting; a game rebuild (new texts, or rows put back at their
-     * original y) no longer matches it and the list is sorted again.
-     */
+    // Layout of the list as we last left it: every row widget's text and y in child order. Our own
+    // sort changes the y values, so it is taken again after sorting; a game rebuild (new texts, or
+    // rows put back at their original y) no longer matches it and the list is sorted again.
     private static final long NO_SIGNATURE = 0;
     private long taskListSignature = NO_SIGNATURE;
 
-    /**
-     * Under three rows there is no second gap to check the first one against,
-     * so the row pitch proves nothing and the container is left alone.
-     */
+    // Under three rows there is no second gap to check the first one against, so the row pitch
+    // proves nothing and the container is left alone.
     private static final int MIN_TASK_ROWS = 3;
 
-    /**
-     * Every widget our sort moved: the game's y and the y we last put it at,
-     * so switching the sorter off can put the rows back. A widget the game
-     * has moved itself since is recorded afresh on the next sort.
-     */
+    // Every widget our sort moved: the game's y and the y we last put it at, so switching the
+    // sorter off can put the rows back. A widget the game has moved itself since is recorded afresh
+    // on the next sort.
     private final Map<Widget, int[]> movedWidgets = new IdentityHashMap<>();
 
     @Inject
@@ -257,11 +246,9 @@ public class TaskSorterFeature implements Feature
         return client.getWidget(InterfaceID.SlayerRewardsTaskList.UNIVERSE) != null;
     }
 
-    /**
-     * Puts every row we moved back at the game's y. Only widgets still in an
-     * open list are touched; anything the game has rebuilt or moved since is
-     * left as it is. The record and the signatures are cleared either way.
-     */
+    // Puts every row we moved back at the game's y. Only widgets still in an open list are touched;
+    // anything the game has rebuilt or moved since is left as it is. The record and the signatures
+    // are cleared either way.
     private void restoreOrder()
     {
         if (!movedWidgets.isEmpty() && rewardsInterfaceOpen())
@@ -324,11 +311,8 @@ public class TaskSorterFeature implements Feature
         taskListSignature = NO_SIGNATURE;
     }
 
-    /**
-     * Hash of each visible child's y and text in child order. Child order
-     * does not follow our sort, so a list we sorted hashes the same until
-     * the game changes a text or moves a row.
-     */
+    // Hash of each visible child's y and text in child order. Child order does not follow our sort,
+    // so a list we sorted hashes the same until the game changes a text or moves a row.
     private static long layoutSignature(Widget[]... layers)
     {
         long hash = 1;
@@ -354,7 +338,7 @@ public class TaskSorterFeature implements Feature
         return hash == NO_SIGNATURE ? 1 : hash;
     }
 
-    /** One visual row of the list, the widgets sharing a base y with its sort keys. */
+    // One visual row of the list, the widgets sharing a base y with its sort keys.
     private static class Row
     {
         final int baseY;
@@ -393,10 +377,8 @@ public class TaskSorterFeature implements Feature
         taskListSignature = layoutSignature(drawn, clicks);
     }
 
-    /**
-     * Sorts the rows onto their own slots. Partners are the clickable layer's
-     * rows by base y, moved along with the visual row at the same y.
-     */
+    // Sorts the rows onto their own slots. Partners are the clickable layer's rows by base y, moved
+    // along with the visual row at the same y.
     private void applySort(List<Row> rows, Map<Integer, Row> partners)
     {
         // Clusters without any text (dividers, lone icons) are not task rows,
@@ -477,14 +459,11 @@ public class TaskSorterFeature implements Feature
         }
     }
 
-    /**
-     * A container is only sorted when its rows carry the shape a task list
-     * has, which is a name on every row, the same widget count on each, and a
-     * constant vertical pitch across the whole run. Headers, captions and
-     * other furniture sharing the container break one of the three, and the
-     * list is left as the game built it. The caller has already ruled out
-     * runs too short for the pitch to mean anything.
-     */
+    // A container is only sorted when its rows carry the shape a task list has, which is a name on
+    // every row, the same widget count on each, and a constant vertical pitch across the whole run.
+    // Headers, captions and other furniture sharing the container break one of the three, and the
+    // list is left as the game built it. The caller has already ruled out runs too short for the
+    // pitch to mean anything.
     private static boolean looksLikeTaskRows(List<Row> rows)
     {
         int widgetCount = rows.get(0).widgets.size();
@@ -512,13 +491,10 @@ public class TaskSorterFeature implements Feature
         return true;
     }
 
-    /**
-     * Every row about to move needs its own partner on the clickable layer.
-     * Moving the visual rows without it would point the clicks at the old
-     * order. Base y values are unique within a layer, so a clickable row with
-     * no partner here belongs to a cluster the visual side dropped, sits at a
-     * y no sort target uses, and stays where it is.
-     */
+    // Every row about to move needs its own partner on the clickable layer. Moving the visual rows
+    // without it would point the clicks at the old order. Base y values are unique within a layer,
+    // so a clickable row with no partner here belongs to a cluster the visual side dropped, sits at
+    // a y no sort target uses, and stays where it is.
     private static boolean linesUpWith(List<Row> rows, Map<Integer, Row> partners)
     {
         for (Row row : rows)
@@ -542,7 +518,7 @@ public class TaskSorterFeature implements Feature
         return ys;
     }
 
-    /** Rows by base y, in child order of their first widget. */
+    // Rows by base y, in child order of their first widget.
     private static Map<Integer, Row> groupIntoRows(Widget[] children)
     {
         // Rows are reconstructed by clustering children on their y position.

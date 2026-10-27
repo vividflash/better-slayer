@@ -42,21 +42,17 @@ import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import net.runelite.client.util.Text;
 
-/**
- * Shows the estimated odds of the configured superior drop for each task
- * Mortimer is offering and the time each is expected to take, while his
- * choice interface is open, and marks the configured mode's pick.
- */
+// Shows the estimated odds of the configured superior drop for each task Mortimer is offering and
+// the time each is expected to take, while his choice interface is open, and marks the configured
+// mode's pick.
 @Singleton
 public class TaskChoiceOddsOverlay extends OverlayPanel
 {
     private final SlayerConfig config;
     private final TaskChoiceOddsFeature feature;
 
-    /**
-     * The panel texts and width, built once for the rows, odds mode, overhead
-     * and font they were worked out from, and again when any of those changes.
-     */
+    // The panel texts and width, built once for the rows, odds mode, overhead and font they were
+    // worked out from, and again when any of those changes.
     private List<TaskChoiceOddsFeature.Row> textRows;
     private UniqueOddsMode textMode;
     private int textOverhead;
@@ -119,11 +115,8 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
         return super.render(graphics);
     }
 
-    /**
-     * Works out the title, each row's odds text and the panel width that
-     * keeps every row on one line, since a row would wrap at the standard
-     * width.
-     */
+    // Works out the title, each row's odds text and the panel width that keeps every row on one
+    // line, since a row would wrap at the standard width.
     private void buildTexts(FontMetrics metrics, List<TaskChoiceOddsFeature.Row> rows, UniqueOddsMode mode)
     {
         // The dropdown says "Slayer Unique Roll"; next to his interface the "Slayer" is redundant.

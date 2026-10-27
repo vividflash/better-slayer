@@ -43,16 +43,14 @@ import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.util.ColorUtil;
 
-/**
- * Posts the area a task is restricted to, which only Konar assigns. The
- * area comes from a server-synced varp resolved against the slayer area
- * table, so nothing is parsed from her dialogue.
- */
+// Posts the area a task is restricted to, which only Konar assigns. The area comes from a
+// server-synced varp resolved against the slayer area table, so nothing is parsed from her
+// dialogue.
 @Slf4j
 @Singleton
 public class TaskAreaFeature implements Feature
 {
-    /** Same green as the milestone reminder. */
+    // Same green as the milestone reminder.
     private static final Color AREA_MESSAGE_COLOR = new Color(0x00A000);
 
     @Inject
@@ -67,7 +65,8 @@ public class TaskAreaFeature implements Feature
     @Inject
     private SlayerConfig config;
 
-    /** Set while the varps sync after a login or hop, so a task taken earlier is not announced again. */
+    // Set while the varps sync after a login or hop, so a task taken earlier is not announced
+    // again.
     private boolean loginSync;
 
     @Override

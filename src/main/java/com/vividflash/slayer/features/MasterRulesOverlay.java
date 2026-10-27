@@ -37,13 +37,10 @@ import net.runelite.client.ui.overlay.components.ComponentConstants;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
-/**
- * Point-projection panel shown while a slayer master is nearby, unless set
- * to hide during a task taken from Mortimer. Its lines,
- * up to four, are the next task number (Mortimer's own task count when he is the
- * master to use), which master to take it from, current points, and points
- * after the next task.
- */
+// Point-projection panel shown while a slayer master is nearby, unless set to hide during a task
+// taken from Mortimer. Its lines, up to four, are the next task number (Mortimer's own task count
+// when he is the master to use), which master to take it from, current points, and points after the
+// next task.
 @Singleton
 public class MasterRulesOverlay extends OverlayPanel
 {
@@ -104,9 +101,7 @@ public class MasterRulesOverlay extends OverlayPanel
         return super.render(graphics);
     }
 
-    /**
-     * Adds a row and returns the panel width that keeps it on one line.
-     */
+    // Adds a row and returns the panel width that keeps it on one line.
     private int addLine(FontMetrics metrics, String left, String right)
     {
         panelComponent.getChildren().add(LineComponent.builder()

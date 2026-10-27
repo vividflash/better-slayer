@@ -57,13 +57,13 @@ public class SlayerPlugin extends Plugin
 {
     private static final String LAST_SEEN_VERSION_KEY = "lastSeenVersion";
 
-    /** The release the one-time notice below belongs to, not the packaged version. */
+    // The release the one-time notice below belongs to, not the packaged version.
     private static final String VERSION = "1.4";
     private static final String UPDATE_MESSAGE =
         "Patch 1.4; Mortimer shows where to go for each task, "
             + "Konar tells you the task area in chat";
 
-    /** Dark red for the one-time notice, legible on either chatbox background. */
+    // Dark red for the one-time notice, legible on either chatbox background.
     private static final Color UPDATE_MESSAGE_COLOR = new Color(0x8B0000);
 
     @Inject
@@ -112,10 +112,8 @@ public class SlayerPlugin extends Plugin
         features.clear();
     }
 
-    /**
-     * Shows the update notice once, on the first login after the version
-     * changes. The stored version gates it, so no per-login flag is needed.
-     */
+    // Shows the update notice once, on the first login after the version changes. The stored
+    // version gates it, so no per-login flag is needed.
     @Subscribe
     public void onGameStateChanged(GameStateChanged event)
     {

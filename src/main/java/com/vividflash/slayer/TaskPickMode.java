@@ -24,22 +24,20 @@
  */
 package com.vividflash.slayer;
 
-/**
- * How the marked pick among Mortimer's offered tasks is chosen. A task's time
- * is its expected kill count over its kills per hour, plus the per-task
- * overhead. Its worth is the unique table rolls it is expected to give.
- */
+// How the marked pick among Mortimer's offered tasks is chosen. A task's time is its expected kill
+// count over its kills per hour, plus the per-task overhead. Its worth is the unique table rolls it
+// is expected to give.
 public enum TaskPickMode
 {
-    /** Shortest task, for the most completed tasks per hour. */
+    // Shortest task, for the most completed tasks per hour.
     FASTEST("Fastest"),
-    /** Shortest task, unless a boosted multicombat task beats the long-run rolls per hour. */
+    // Shortest task, unless a boosted multicombat task beats the long-run rolls per hour.
     FASTEST_WITH_EXCEPTION("Fast + Best"),
-    /** Most rolls over the long run, so a weak offer loses to a shorter task. */
+    // Most rolls over the long run, so a weak offer loses to a shorter task.
     BALANCED("Balanced"),
-    /** Highest chance per superior, whatever the task takes. */
+    // Highest chance per superior, whatever the task takes.
     MAX_CHANCE("Max chance"),
-    /** Fast + Best until the third choice unlocks, Balanced after. */
+    // Fast + Best until the third choice unlocks, Balanced after.
     AUTO("Auto");
 
     private final String name;

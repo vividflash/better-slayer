@@ -61,19 +61,15 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.util.Text;
 
-/**
- * Puts Nieve back where the game shows Steve.
- *
- * A single varbit decides which of the two the server has on display. While
- * that varbit says Steve, this feature holds a client-side copy of it at the
- * Nieve value and rewrites the parts the varbit does not reach. Those parts
- * are the NPC Contact row, the dialogue name and chathead, menu options, the
- * grave's memorial text and two chat messages.
- *
- * The value the server sent is tracked apart from the value on display. It is
- * written back when the feature is switched off, when the plugin stops and
- * when the session ends.
- */
+// Puts Nieve back where the game shows Steve.
+//
+// A single varbit decides which of the two the server has on display. While that varbit says Steve,
+// this feature holds a client-side copy of it at the Nieve value and rewrites the parts the varbit
+// does not reach. Those parts are the NPC Contact row, the dialogue name and chathead, menu
+// options, the grave's memorial text and two chat messages.
+//
+// The value the server sent is tracked apart from the value on display. It is written back when the
+// feature is switched off, when the plugin stops and when the session ends.
 @Slf4j
 @Singleton
 public class NieveInsteadOfSteveFeature implements Feature
@@ -81,61 +77,47 @@ public class NieveInsteadOfSteveFeature implements Feature
     private static final String STEVE = "Steve";
     private static final String NIEVE = "Nieve";
 
-    /** Varbit value the server uses while Steve is the one standing there. */
+    // Varbit value the server uses while Steve is the one standing there.
     private static final int SHOWING_STEVE = 1;
-    /** Varbit value the server uses while Nieve is the one standing there. */
+    // Varbit value the server uses while Nieve is the one standing there.
     private static final int SHOWING_NIEVE = 0;
-    /** No value observed yet this session. */
+    // No value observed yet this session.
     private static final int UNOBSERVED = -1;
 
-    /**
-     * Npc ids as a chathead widget carries them. A chathead is only written
-     * after it has been read back as Steve's, so a widget holding anything
-     * else keeps whatever it has.
-     */
+    // Npc ids as a chathead widget carries them. A chathead is only written after it has been read
+    // back as Steve's, so a widget holding anything else keeps whatever it has.
     private static final int NIEVE_CHATHEAD = NpcID.SLAYER_MASTER_NIEVE;
     private static final int STEVE_CHATHEAD = NpcID.SLAYER_MASTER_STEVE;
 
-    /**
-     * The slayer master can spawn under the base id or either shape's id
-     * (Nieve's while the swap is pinned), so all three count, as does the
-     * Steve guarding the wyvern cave.
-     */
+    // The slayer master can spawn under the base id or either shape's id (Nieve's while the swap is
+    // pinned), so all three count, as does the Steve guarding the wyvern cave.
     private static final int MASTER_BASE_NPC = NpcID.SLAYER_MASTER_6;
     private static final int STEVE_NPC = NpcID.SLAYER_MASTER_STEVE;
     private static final int NIEVE_NPC = NpcID.SLAYER_MASTER_NIEVE;
     private static final int WYVERN_CAVE_STEVE_NPC = NpcID.WYVERN_CAVE_STEVE;
 
-    /** Game ticks without an open dialogue before a contact counts as over. */
+    // Game ticks without an open dialogue before a contact counts as over.
     private static final int CONTACT_IDLE_TICKS = 3;
 
-    /** Value of the current-task master varbit while Nieve or Steve assigned the task. */
+    // Value of the current-task master varbit while Nieve or Steve assigned the task.
     private static final int TASK_MASTER_STEVE = 6;
 
-    /** How far ahead of a contact row's label its chathead can sit. */
+    // How far ahead of a contact row's label its chathead can sit.
     private static final int CONTACT_CHATHEAD_LOOKBACK = 2;
 
-    /**
-     * Substring the untouched grave dedication carries. It also marks the
-     * popup as the grave rather than something else on the same group, so it
-     * is matched before anything is written.
-     */
+    // Substring the untouched grave dedication carries. It also marks the popup as the grave rather
+    // than something else on the same group, so it is matched before anything is written.
     private static final String GRAVE_DEDICATION_MARKER = "Nieve's honour";
-    /**
-     * Nothing on this stone is dedicated to anyone, so the kill counts credit
-     * the creatures to the one who made them. The phrase matches the length of
-     * the one it replaces, which keeps the break the game puts in that line;
-     * the rows do not wrap on their own. Missing it leaves the line as the
-     * game wrote it, which is why the marker above is the shorter match.
-     */
+    // Nothing on this stone is dedicated to anyone, so the kill counts credit the creatures to the
+    // one who made them. The phrase matches the length of the one it replaces, which keeps the
+    // break the game puts in that line; the rows do not wrap on their own. Missing it leaves the
+    // line as the game wrote it, which is why the marker above is the shorter match.
     private static final String GRAVE_DEDICATION_ORIGINAL = "in Nieve's honour";
     private static final String GRAVE_DEDICATION_SWAP = "of Glough's making";
 
-    /**
-     * Every text line the grave popup is built from, top to bottom. The lines
-     * are matched by the wording the game puts on them rather than by
-     * position, so nothing is written to a line that holds something else.
-     */
+    // Every text line the grave popup is built from, top to bottom. The lines are matched by the
+    // wording the game puts on them rather than by position, so nothing is written to a line that
+    // holds something else.
     private static final int[] GRAVE_LINES = {
         InterfaceID.Messagescroll2.MS1,
         InterfaceID.Messagescroll2.MS2,
@@ -151,13 +133,10 @@ public class NieveInsteadOfSteveFeature implements Feature
         InterfaceID.Messagescroll2.MS12,
     };
 
-    /**
-     * With Nieve standing in the cave, the memorial belongs to the one the
-     * quest actually buried, on the stone the gnomes had already cut for her.
-     * Hers lists the honours she held; his lists the offices he held and what
-     * he nearly did with them, in the same rows. Each line replaces a line the
-     * game already writes, so the layout stays the game's own.
-     */
+    // With Nieve standing in the cave, the memorial belongs to the one the quest actually buried,
+    // on the stone the gnomes had already cut for her. Hers lists the honours she held; his lists
+    // the offices he held and what he nearly did with them, in the same rows. Each line replaces a
+    // line the game already writes, so the layout stays the game's own.
     private static final String GRAVE_TITLE_ORIGINAL = "Nieve";
     private static final String GRAVE_TITLE_REWRITE = "Glough";
     private static final String GRAVE_MEMORIAL_MARKER = "In Loving memory of";
@@ -167,26 +146,20 @@ public class NieveInsteadOfSteveFeature implements Feature
     private static final String GRAVE_EPITAPH_SECOND_ORIGINAL = "Master of Creatures";
     private static final String GRAVE_EPITAPH_SECOND_REWRITE = "Nearly the End of Gnomekind itself";
 
-    /**
-     * One replacement line for any of Steve's identity/backstory dialogue
-     * boxes (the cousin/takeover lines); it must not itself contain a
-     * word {@link #mentionsIdentity} matches, or it would be rewritten
-     * forever.
-     */
+    // One replacement line for any of Steve's identity/backstory dialogue boxes (the
+    // cousin/takeover lines); it must not itself contain a word mentionsIdentity matches, or it
+    // would be rewritten forever.
     private static final String DIALOGUE_BODY_REWRITE = "Enough about me. Those monsters<br>won't slay themselves.";
 
-    /** Player option that opens the backstory branch, and its replacement text. */
+    // Player option that opens the backstory branch, and its replacement text.
     private static final String NEW_MASTER_OPTION = "I see you're the new Slayer Master here.";
     private static final String NEW_MASTER_OPTION_REWRITE = "Oh, hi Nieve. Good to see you're still around.";
-    /** Her answer to it, which replaces the cousin/takeover backstory box. */
+    // Her answer to it, which replaces the cousin/takeover backstory box.
     private static final String DEMISE_LINE = "My demise was... greatly exaggerated.";
 
-    /**
-     * The player's sign-off from that branch. It commiserates over a Nieve who
-     * is standing right there, so it is answered to the rewritten branch
-     * instead. Steve's is the only script in the game that carries the line,
-     * so it needs no further qualification.
-     */
+    // The player's sign-off from that branch. It commiserates over a Nieve who is standing right
+    // there, so it is answered to the rewritten branch instead. Steve's is the only script in the
+    // game that carries the line, so it needs no further qualification.
     private static final String CONDOLENCE_LINE = "How sad for you.";
     private static final String CONDOLENCE_REWRITE = "Good to have you back.";
 
@@ -197,7 +170,8 @@ public class NieveInsteadOfSteveFeature implements Feature
 
     private static final Pattern WHITESPACE = Pattern.compile("\\s+");
 
-    /** Texts held in the plain text cache before it starts over; the contact list is the longest set. */
+    // Texts held in the plain text cache before it starts over; the contact list is the longest
+    // set.
     private static final int PLAIN_TEXT_CACHE_SIZE = 128;
 
     @Inject
@@ -212,50 +186,45 @@ public class NieveInsteadOfSteveFeature implements Feature
     @Inject
     private SlayerConfig config;
 
-    /** The value the server last pushed, kept apart from whatever the client is currently showing. */
+    // The value the server last pushed, kept apart from whatever the client is currently showing.
     private int serverValue = UNOBSERVED;
 
-    /** Set while the client-side varbit is being pinned to {@link #SHOWING_NIEVE} by this feature. */
+    // Set while the client-side varbit is being pinned to SHOWING_NIEVE by this feature.
     private boolean pinned;
 
-    /** Steve npcs currently in the scene, so spawn and despawn order cannot unbalance a count. */
+    // Steve npcs currently in the scene, so spawn and despawn order cannot unbalance a count.
     private final Set<NPC> steveNpcs = new HashSet<>();
 
-    /** Steve is in the scene, so he can be talked to in person. */
+    // Steve is in the scene, so he can be talked to in person.
     private boolean steveNearby;
 
-    /** The current slayer task was assigned by Steve, so the gems and rings reach him. */
+    // The current slayer task was assigned by Steve, so the gems and rings reach him.
     private boolean steveTask;
 
-    /**
-     * An NPC Contact row was clicked and the conversation has not ended yet.
-     * A cancelled contact leaves this set, which only costs the dialogue
-     * lookups until the next logout.
-     */
+    // An NPC Contact row was clicked and the conversation has not ended yet. A cancelled contact
+    // leaves this set, which only costs the dialogue lookups until the next logout.
     private boolean contactPending;
 
-    /** A dialogue has opened since {@link #contactPending} was set. */
+    // A dialogue has opened since contactPending was set.
     private boolean contactDialogueSeen;
 
-    /** One of the three dialogue groups was open on the last frame checked. */
+    // One of the three dialogue groups was open on the last frame checked.
     private boolean dialogueOpen;
 
-    /** Ticks in a row with no dialogue open after the contact's conversation. */
+    // Ticks in a row with no dialogue open after the contact's conversation.
     private int contactIdleTicks;
 
-    /** The NPC Contact list is open, so its rows are dressed each frame. */
+    // The NPC Contact list is open, so its rows are dressed each frame.
     private boolean contactListOpen;
 
-    /** The scroll popup the grave uses is open, whatever it is showing. */
+    // The scroll popup the grave uses is open, whatever it is showing.
     private boolean scrollOpen;
 
-    /**
-     * Plain forms of widget texts seen recently, keyed by the raw text, so the
-     * per-frame matching does not strip tags from the same text every frame.
-     */
+    // Plain forms of widget texts seen recently, keyed by the raw text, so the per-frame matching
+    // does not strip tags from the same text every frame.
     private final Map<String, String> plainTexts = new HashMap<>();
 
-    /** The grave's line widgets, looked up again each frame into the same array. */
+    // The grave's line widgets, looked up again each frame into the same array.
     private final Widget[] graveLines = new Widget[GRAVE_LINES.length];
 
     @Override
@@ -299,18 +268,15 @@ public class NieveInsteadOfSteveFeature implements Feature
         return widget != null && !widget.isHidden();
     }
 
-    /** True while the server says Steve and the user wants to see Nieve. */
+    // True while the server says Steve and the user wants to see Nieve.
     private boolean swapActive()
     {
         return serverValue == SHOWING_STEVE && config.nieve();
     }
 
-    /**
-     * Files an observed varbit value as the server's own. A write of ours
-     * posts no varbit event, so every event carries the server's value. Once
-     * the server says Nieve, the pin has nothing left to hold. Unknown values
-     * are ignored.
-     */
+    // Files an observed varbit value as the server's own. A write of ours posts no varbit event, so
+    // every event carries the server's value. Once the server says Nieve, the pin has nothing left
+    // to hold. Unknown values are ignored.
     private void observe(int exposed)
     {
         if (exposed != SHOWING_STEVE && exposed != SHOWING_NIEVE)
@@ -330,7 +296,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         }
     }
 
-    /** Pins the client-side varbit to Nieve. */
+    // Pins the client-side varbit to Nieve.
     private void pin()
     {
         if (!config.nieve() || serverValue != SHOWING_STEVE)
@@ -349,7 +315,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         }
     }
 
-    /** Hands the varbit back to the value the server actually gave us. */
+    // Hands the varbit back to the value the server actually gave us.
     private void unpin()
     {
         if (!pinned)
@@ -368,7 +334,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         }
     }
 
-    /** Re-reads the varbit and re-applies the pin; idempotent. */
+    // Re-reads the varbit and re-applies the pin; idempotent.
     private void reconcileVarbit()
     {
         if (client.getGameState() != GameState.LOGGED_IN)
@@ -385,7 +351,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         pin();
     }
 
-    /** Re-reads the task master and the npcs already standing in the scene. */
+    // Re-reads the task master and the npcs already standing in the scene.
     private void refreshSteveState()
     {
         if (client.getGameState() != GameState.LOGGED_IN)
@@ -693,9 +659,7 @@ public class NieveInsteadOfSteveFeature implements Feature
         client.refreshChat();
     }
 
-    /**
-     * Swaps a dialogue box away from Steve.
-     */
+    // Swaps a dialogue box away from Steve.
     private void dressDialogue()
     {
         // Steve is the speaker under either label, the game's own "Steve" or
@@ -738,10 +702,8 @@ public class NieveInsteadOfSteveFeature implements Feature
         }
     }
 
-    /**
-     * Rewrites the player's side of the conversation. While the swap is
-     * active the player should not be saying "Steve" either.
-     */
+    // Rewrites the player's side of the conversation. While the swap is active the player should
+    // not be saying "Steve" either.
     private void dressPlayerDialogue()
     {
         Widget text = client.getWidget(InterfaceID.ChatRight.TEXT);
@@ -776,10 +738,8 @@ public class NieveInsteadOfSteveFeature implements Feature
         }
     }
 
-    /**
-     * The chat option that opens the backstory branch reads as if the player
-     * doesn't know who she is; reword it while the swap is active.
-     */
+    // The chat option that opens the backstory branch reads as if the player doesn't know who she
+    // is; reword it while the swap is active.
     private void dressChatOptions()
     {
         Widget options = client.getWidget(InterfaceID.Chatmenu.OPTIONS);
@@ -810,12 +770,9 @@ public class NieveInsteadOfSteveFeature implements Feature
         return lower.contains("steve") || lower.contains("nieve") || lower.contains("cousin");
     }
 
-    /**
-     * Relabels Steve's row on the NPC Contact interface and puts Nieve's
-     * chathead back on it. The row is found by its label rather than by a
-     * fixed position, so the entry order in the interface can move without
-     * breaking this.
-     */
+    // Relabels Steve's row on the NPC Contact interface and puts Nieve's chathead back on it. The
+    // row is found by its label rather than by a fixed position, so the entry order in the
+    // interface can move without breaking this.
     private void dressContactList()
     {
         Widget root = client.getWidget(InterfaceID.LunarContactNpc.UNIVERSE);
@@ -857,10 +814,8 @@ public class NieveInsteadOfSteveFeature implements Feature
         chathead.setModelId(NIEVE_CHATHEAD);
     }
 
-    /**
-     * The contact rows are built as dynamic children of the scroll layer, or
-     * of the contents layer when the list is not scrolling.
-     */
+    // The contact rows are built as dynamic children of the scroll layer, or of the contents layer
+    // when the list is not scrolling.
     private Widget[] contactEntries()
     {
         Widget[] entries = dynamicChildren(InterfaceID.LunarContactNpc.SCROLLLAYER);
@@ -877,12 +832,9 @@ public class NieveInsteadOfSteveFeature implements Feature
         return widget == null ? null : widget.getDynamicChildren();
     }
 
-    /**
-     * The chathead belonging to the row whose label sits at the given index,
-     * identified by Steve's own npc id sitting on it. A widget that does not
-     * carry that id is some other part of the interface, so it is passed over
-     * and nothing is written to it.
-     */
+    // The chathead belonging to the row whose label sits at the given index, identified by Steve's
+    // own npc id sitting on it. A widget that does not carry that id is some other part of the
+    // interface, so it is passed over and nothing is written to it.
     private static Widget findContactChathead(Widget[] entries, int labelIndex)
     {
         int lowest = Math.max(0, labelIndex - CONTACT_CHATHEAD_LOOKBACK);
@@ -899,14 +851,11 @@ public class NieveInsteadOfSteveFeature implements Feature
         return null;
     }
 
-    /**
-     * Reworks the memorial so it mourns Glough rather than the Nieve standing
-     * in the cave. Widget group 221 is a generic scroll popup shared with
-     * unrelated content, so the dedication line has to look like the grave's
-     * before anything is written. Each line is then matched by its own
-     * wording, which leaves the blank lines blank, leaves the kill counts
-     * alone and makes every write a no-op once it has happened.
-     */
+    // Reworks the memorial so it mourns Glough rather than the Nieve standing in the cave. Widget
+    // group 221 is a generic scroll popup shared with unrelated content, so the dedication line has
+    // to look like the grave's before anything is written. Each line is then matched by its own
+    // wording, which leaves the blank lines blank, leaves the kill counts alone and makes every
+    // write a no-op once it has happened.
     private void rewriteGrave()
     {
         Widget[] lines = graveLines;

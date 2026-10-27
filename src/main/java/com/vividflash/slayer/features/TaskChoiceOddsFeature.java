@@ -58,25 +58,22 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.Text;
 
-/**
- * Computes each of Mortimer's offered tasks' superior unique table rate, which
- * the overlay scales to the drop the config asks for. The rate comes from the
- * game's slayer task data, multiplied by the superior-unique modifier when a
- * slot carries one. Each task's expected kill count and kills per hour are
- * resolved beside it, for the pick modes that weigh a task's time.
- * Unresolvable slots show no value.
- */
+// Computes each of Mortimer's offered tasks' superior unique table rate, which the overlay scales
+// to the drop the config asks for. The rate comes from the game's slayer task data, multiplied by
+// the superior-unique modifier when a slot carries one. Each task's expected kill count and kills
+// per hour are resolved beside it, for the pick modes that weigh a task's time. Unresolvable slots
+// show no value.
 @Slf4j
 @Singleton
 public class TaskChoiceOddsFeature implements Feature
 {
-    /** Mortimer's offered tasks, slots 1 to 3. */
+    // Mortimer's offered tasks, slots 1 to 3.
     private static final int[] CHOICE_TASK_VARBITS = {
         VarbitID.SLAYER_CHOOSE_TASK_1,
         VarbitID.SLAYER_CHOOSE_TASK_2,
         VarbitID.SLAYER_CHOOSE_TASK_3
     };
-    /** Modifier attached to each slot, given as a row id, a value and a sign. */
+    // Modifier attached to each slot, given as a row id, a value and a sign.
     private static final int[] CHOICE_MODIFIER_ID_VARBITS = {
         VarbitID.SLAYER_CHOOSE_TASK_1_MODIFIER_ID,
         VarbitID.SLAYER_CHOOSE_TASK_2_MODIFIER_ID,
@@ -93,48 +90,48 @@ public class TaskChoiceOddsFeature implements Feature
         VarbitID.SLAYER_CHOOSE_TASK_3_MODIFIER_NEGATIVE
     };
 
-    /** Container on the task-choice interface where the entries are built. */
+    // Container on the task-choice interface where the entries are built.
     private static final int TASK_CHOICE_CONTENT = InterfaceID.SlayerTaskChoice.CONTENT;
 
-    /** Indexes into the task row for stat requirements and display name. */
+    // Indexes into the task row for stat requirements and display name.
     private static final int TASK_STAT_REQ_COLUMN = 2;
     private static final int TASK_NAME_COLUMN = 10;
-    /** Stat id of the Slayer skill inside the stat tuples. */
+    // Stat id of the Slayer skill inside the stat tuples.
     private static final int SLAYER_STAT = 18;
 
-    /** The one task whose entry carries no slayer level, and the level it needs. */
+    // The one task whose entry carries no slayer level, and the level it needs.
     private static final int WARPED_CREATURES_TASK = 122;
     private static final int WARPED_CREATURES_LEVEL = 56;
 
-    /** Id of the modifier that boosts the unique-table roll by a percentage. */
+    // Id of the modifier that boosts the unique-table roll by a percentage.
     private static final int MODIFIER_UNIQUE_ID = 4;
-    /** Id of the modifier that adds or removes a flat number of kills. */
+    // Id of the modifier that adds or removes a flat number of kills.
     private static final int MODIFIER_QUANTITY_ID = 2;
 
-    /** Mortimer's id in the master column of the master task table. */
+    // Mortimer's id in the master column of the master task table.
     private static final int MORTIMER_MASTER_ID = 10;
 
     private static final String RECALCULATE_KEY = "taskChoiceRecalculate";
     private static final String BASELINE_KEY = "taskChoiceBaseline";
 
-    /** Color the best option's name takes in Mortimer's interface. */
+    // Color the best option's name takes in Mortimer's interface.
     private static final int BEST_NAME_COLOR = 0x00FF00;
 
     private static final String UNKNOWN_TASK = "Unknown task";
 
-    /** Stands in for a db row the cache would not give up. */
+    // Stands in for a db row the cache would not give up.
     private static final int UNREADABLE_ROW = -1;
 
-    /** How long after his window was last open a new task still counts as taken from it. */
+    // How long after his window was last open a new task still counts as taken from it.
     private static final Duration TAKEN_WINDOW = Duration.ofSeconds(10);
-    /** Tiles from Mortimer past which the player has left him. */
+    // Tiles from Mortimer past which the player has left him.
     private static final int LEFT_DISTANCE = 15;
 
     private static final int BASILISKS_TASK = 43;
-    /** Slayer level of a basilisk knight and of its superior. */
+    // Slayer level of a basilisk knight and of its superior.
     private static final int BASILISK_KNIGHT_LEVEL = 60;
 
-    /** A panel row: an offer, or its basilisk knight variant, and whether it carries the pick. */
+    // A panel row: an offer, or its basilisk knight variant, and whether it carries the pick.
     public static class Row
     {
         public final Choice choice;
@@ -147,24 +144,22 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /** One offered task, resolved as far as the cache allowed. */
+    // One offered task, resolved as far as the cache allowed.
     public static class Choice
     {
         public final String name;
-        /** The monster's own unique table rate for this slot; NaN when unresolvable. */
+        // The monster's own unique table rate for this slot; NaN when unresolvable.
         public final double uniqueTableChance;
-        /** Percent boost from a superior-unique modifier, 0 if none. */
+        // Percent boost from a superior-unique modifier, 0 if none.
         public final int uniqueModifierPercent;
-        /** Middle of the assigned amount, a quantity modifier included; NaN when unreadable. */
+        // Middle of the assigned amount, a quantity modifier included; NaN when unreadable.
         public final double expectedQuantity;
         public final int killsPerHour;
-        /** Whether this is one of the multicombat tasks. */
+        // Whether this is one of the multicombat tasks.
         public final boolean fastTask;
 
-        /**
-         * Slayer task id, -1 when the slot could not be resolved, or a
-         * {@link MortimerTask} key for a row that is no offer of its own.
-         */
+        // Slayer task id, -1 when the slot could not be resolved, or a MortimerTask key for a row
+        // that is no offer of its own.
         public final int taskId;
 
         Choice(String name, double uniqueTableChance, int uniqueModifierPercent,
@@ -216,38 +211,38 @@ public class TaskChoiceOddsFeature implements Feature
     private final List<Choice> choices = new ArrayList<>();
     private final List<Choice> choicesView = Collections.unmodifiableList(choices);
 
-    /** The offers as his window last showed them, kept past its closing. */
+    // The offers as his window last showed them, kept past its closing.
     private List<Choice> lastOffered = new ArrayList<>();
-    /** Set when the offers are read again, until his open window has copied them. */
+    // Set when the offers are read again, until his open window has copied them.
     private boolean offersChanged;
-    /** Stamped on each game tick his window is shown, and when it loads. */
+    // Stamped on each game tick his window is shown, and when it loads.
     private Instant lastOpen = Instant.EPOCH;
-    /** The offer the player took, for the area panel to keep showing. */
+    // The offer the player took, for the area panel to keep showing.
     private Choice taken;
-    /** When the player left Mortimer with that task; null while still beside him. */
+    // When the player left Mortimer with that task; null while still beside him.
     private Instant leftAt;
-    /** The taken task's panel rows while the area panel is to show them, kept per tick. */
+    // The taken task's panel rows while the area panel is to show them, kept per tick.
     private List<Row> takenRows = Collections.emptyList();
-    /** The taken task those rows were built for; null while there are none. */
+    // The taken task those rows were built for; null while there are none.
     private Choice takenRowsFor;
-    /** The offers as panel rows and the pick among them; null until built after a change. */
+    // The offers as panel rows and the pick among them; null until built after a change.
     private List<Row> offerRows;
     private int pickIndex;
 
-    /** The best option's name widget, once found in the open interface. */
+    // The best option's name widget, once found in the open interface.
     private Widget bestName;
-    /** Set when his interface loads; cleared once its widgets are gone, on logout and on shutdown. */
+    // Set when his interface loads; cleared once its widgets are gone, on logout and on shutdown.
     private boolean choiceInterfaceLoaded;
-    /** Whether his window was shown on the last client tick. */
+    // Whether his window was shown on the last client tick.
     private boolean choiceShown;
-    /** The color that widget had before it was marked. */
+    // The color that widget had before it was marked.
     private int bestNameColor;
-    /** The search for that widget found nothing this game tick; it is tried again on the next. */
+    // The search for that widget found nothing this game tick; it is tried again on the next.
     private boolean nameSearchFailed;
 
-    /** Volatile because startUp and shutDown run off the client thread. */
+    // Volatile because startUp and shutDown run off the client thread.
     private volatile boolean running;
-    /** A refresh is queued on the client thread and has not run yet. */
+    // A refresh is queued on the client thread and has not run yet.
     private final AtomicBoolean refreshQueued = new AtomicBoolean();
 
     @Override
@@ -305,11 +300,8 @@ public class TaskChoiceOddsFeature implements Feature
         configManager.setConfiguration(SlayerConfig.GROUP, RECALCULATE_KEY, false);
     }
 
-    /**
-     * Reads the offers again once the current batch of changes is in. Several
-     * slot varbits change together when the offers change, and one read
-     * covers them all.
-     */
+    // Reads the offers again once the current batch of changes is in. Several slot varbits change
+    // together when the offers change, and one read covers them all.
     private void scheduleRefresh()
     {
         if (!refreshQueued.compareAndSet(false, true))
@@ -331,7 +323,7 @@ public class TaskChoiceOddsFeature implements Feature
         return choicesView;
     }
 
-    /** Index into {@link #getChoices()} of the configured mode's pick, or -1. */
+    // Index into getChoices() of the configured mode's pick, or -1.
     public int getPickIndex()
     {
         if (offerRows == null)
@@ -341,7 +333,7 @@ public class TaskChoiceOddsFeature implements Feature
         return pickIndex;
     }
 
-    /** The offered tasks as panel rows, the pick marked. */
+    // The offered tasks as panel rows, the pick marked.
     public List<Row> getOfferRows()
     {
         if (offerRows == null)
@@ -351,10 +343,8 @@ public class TaskChoiceOddsFeature implements Feature
         return offerRows;
     }
 
-    /**
-     * Works the pick and the rows out again once after the offers, the tasks
-     * completed count or a setting changed.
-     */
+    // Works the pick and the rows out again once after the offers, the tasks completed count or a
+    // setting changed.
     private void buildOfferRows()
     {
         pickIndex = scorePick();
@@ -387,37 +377,33 @@ public class TaskChoiceOddsFeature implements Feature
             config.taskChoiceOverhead(), baseline());
     }
 
-    /** Whether his choice interface is loaded; its widgets may still be hidden. */
+    // Whether his choice interface is loaded; its widgets may still be hidden.
     public boolean isChoiceInterfaceLoaded()
     {
         return choiceInterfaceLoaded;
     }
 
-    /** Whether his window was shown on the last client tick. */
+    // Whether his window was shown on the last client tick.
     public boolean isChoiceShown()
     {
         return choiceShown;
     }
 
-    /** Whether the current task is one taken from his window this session. */
+    // Whether the current task is one taken from his window this session.
     public boolean isTakenTaskActive()
     {
         return taken != null;
     }
 
-    /**
-     * The task the player took, as panel rows, while the area panel is still
-     * to show it. The time runs from when the player leaves Mortimer.
-     */
+    // The task the player took, as panel rows, while the area panel is still to show it. The time
+    // runs from when the player leaves Mortimer.
     public List<Row> getTakenRows()
     {
         return takenRows;
     }
 
-    /**
-     * Builds the taken task's rows again when the task or whether it is still
-     * shown has changed, or always when asked to, after a setting change.
-     */
+    // Builds the taken task's rows again when the task or whether it is still shown has changed, or
+    // always when asked to, after a setting change.
     private void updateTakenRows(boolean rebuild)
     {
         Choice shown = taken != null && (leftAt == null
@@ -447,7 +433,7 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /** Of a basilisk offer's two rows, the pick goes to the one it was worked out from. */
+    // Of a basilisk offer's two rows, the pick goes to the one it was worked out from.
     private void addRows(List<Row> rows, Choice choice, boolean picked)
     {
         Choice knights = knightsVariant(choice);
@@ -459,19 +445,16 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /** Hours the choice is expected to take, or NaN when its amount is unreadable. */
+    // Hours the choice is expected to take, or NaN when its amount is unreadable.
     public double estimatedHours(Choice choice)
     {
         return TaskPickScorer.hours(choice.expectedQuantity, choice.killsPerHour,
             config.taskChoiceOverhead());
     }
 
-    /**
-     * A basilisk task can be spent on basilisk knights, whose superior rolls
-     * at their own slayer level. Returns that variant of a basilisk offer for
-     * display beside it, or null for any other task. The pick goes by it
-     * only when the player has ticked that.
-     */
+    // A basilisk task can be spent on basilisk knights, whose superior rolls at their own slayer
+    // level. Returns that variant of a basilisk offer for display beside it, or null for any other
+    // task. The pick goes by it only when the player has ticked that.
     public Choice knightsVariant(Choice choice)
     {
         if (choice.taskId != BASILISKS_TASK)
@@ -483,7 +466,7 @@ public class TaskChoiceOddsFeature implements Feature
             choice.uniqueModifierPercent, choice.expectedQuantity, config.kphBasiliskKnights(), false);
     }
 
-    /** The stored long-run rate, or the bundled one when none is stored. */
+    // The stored long-run rate, or the bundled one when none is stored.
     private double baseline()
     {
         String stored = configManager.getConfiguration(SlayerConfig.GROUP, BASELINE_KEY);
@@ -532,11 +515,8 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /**
-     * A task that starts right after his window was open, and is one of the
-     * offers it showed, is the offer the player took. It is dropped again
-     * once that task is finished or replaced.
-     */
+    // A task that starts right after his window was open, and is one of the offers it showed, is
+    // the offer the player took. It is dropped again once that task is finished or replaced.
     private void noteTakenTask()
     {
         int count = client.getVarpValue(VarPlayerID.SLAYER_COUNT);
@@ -657,11 +637,8 @@ public class TaskChoiceOddsFeature implements Feature
         scheduleRefresh();
     }
 
-    /**
-     * Works the long-run rate out again from Mortimer's whole task list, with
-     * the player's kills per hour and overhead, and stores it. Nothing is stored
-     * when any row is unreadable.
-     */
+    // Works the long-run rate out again from Mortimer's whole task list, with the player's kills
+    // per hour and overhead, and stores it. Nothing is stored when any row is unreadable.
     private void recalculateBaseline()
     {
         try
@@ -772,7 +749,7 @@ public class TaskChoiceOddsFeature implements Feature
             expectedQuantity(taskRow, quantityDelta), kph, MortimerTask.isFastTask(taskId));
     }
 
-    /** Kills the task is expected to be assigned for, or NaN when unreadable. */
+    // Kills the task is expected to be assigned for, or NaN when unreadable.
     private double expectedQuantity(int taskRow, int quantityDelta)
     {
         try
@@ -795,11 +772,8 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /**
-     * Middle of the amount range on a master task row. A task extension the
-     * player has bought replaces the range or adds to it, whichever the task
-     * row lists for it.
-     */
+    // Middle of the amount range on a master task row. A task extension the player has bought
+    // replaces the range or adds to it, whichever the task row lists for it.
     private double amount(int masterTaskRow, int taskRow)
     {
         int min = (Integer) client.getDBTableField(masterTaskRow, DBTableID.SlayerMasterTask.COL_MIN_AMOUNT, 0)[0];
@@ -824,11 +798,9 @@ public class TaskChoiceOddsFeature implements Feature
         return (min + max) / 2.0;
     }
 
-    /**
-     * Whether the task lists an extension in the given column and the player
-     * has it. The column leads with the extension's reward row, whose bit
-     * number counts across the two reward unlock varps.
-     */
+    // Whether the task lists an extension in the given column and the player has it. The column
+    // leads with the extension's reward row, whose bit number counts across the two reward unlock
+    // varps.
     private boolean extensionUnlocked(int taskRow, int column)
     {
         Object[] unlock = client.getDBTableField(taskRow, column, 0);
@@ -842,10 +814,8 @@ public class TaskChoiceOddsFeature implements Feature
         return (unlocks >>> (bit % 32) & 1) == 1;
     }
 
-    /**
-     * Row of the task a slot names by id, or {@link #UNREADABLE_ROW}. The
-     * varbit carries the id the task table indexes, not a row of its own.
-     */
+    // Row of the task a slot names by id, or UNREADABLE_ROW. The varbit carries the id the task
+    // table indexes, not a row of its own.
     private int readTaskRow(int taskId)
     {
         try
@@ -860,7 +830,7 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /** Display name on a task row, or null when the cache doesn't hand one over. */
+    // Display name on a task row, or null when the cache doesn't hand one over.
     private String readTaskName(int taskRow)
     {
         try
@@ -874,7 +844,7 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /** The slot's unique table rate, or NaN when the row is unreadable. */
+    // The slot's unique table rate, or NaN when the row is unreadable.
     private double uniqueTableChance(int taskRow, int uniquePercent)
     {
         try
@@ -887,10 +857,8 @@ public class TaskChoiceOddsFeature implements Feature
         }
     }
 
-    /**
-     * The monster's slayer level from its task entry; 1 when none is listed.
-     * Warped creatures need 56 Slayer, but their entry lists no level.
-     */
+    // The monster's slayer level from its task entry; 1 when none is listed. Warped creatures need
+    // 56 Slayer, but their entry lists no level.
     private int slayerLevel(int taskRow)
     {
         Object[] id = client.getDBTableField(taskRow, DBTableID.SlayerTask.COL_ID, 0);
@@ -915,14 +883,11 @@ public class TaskChoiceOddsFeature implements Feature
         return 1;
     }
 
-    /**
-     * The monster's own rate of rolling a unique table, computed from its
-     * slayer task entry. The squared term divides down as an integer, which
-     * the game's own drop rates confirm: a crushing hand at slayer 5 lands on
-     * 1/172, since 60 squared over 125 truncates to 28 rather than 28.8, and
-     * its imbued heart is eight times that at the 1/1376 the game drops it
-     * at. A hydra at slayer 95 lands on 1/20 and its heart on 1/160.
-     */
+    // The monster's own rate of rolling a unique table, computed from its slayer task entry. The
+    // squared term divides down as an integer, which the game's own drop rates confirm: a crushing
+    // hand at slayer 5 lands on 1/172, since 60 squared over 125 truncates to 28 rather than 28.8,
+    // and its imbued heart is eight times that at the 1/1376 the game drops it at. A hydra at
+    // slayer 95 lands on 1/20 and its heart on 1/160.
     private double baseUniqueChance(int taskRow)
     {
         return baseUniqueChanceAt(slayerLevel(taskRow));
@@ -935,15 +900,12 @@ public class TaskChoiceOddsFeature implements Feature
         return denominator <= 1 ? 1 : 1.0 / denominator;
     }
 
-    /**
-     * Colors the best option's name inside Mortimer's interface. The rows are
-     * script-built, so the name is found by its text rather than by a fixed
-     * child index. That search runs once per opening, or once per game tick
-     * while it finds nothing, and the component is kept
-     * for the color to be reapplied from, since the interface's own handling of
-     * the row can write over it. The old color is put back whenever the offers
-     * or settings are read again; the rows are built fresh each time it opens.
-     */
+    // Colors the best option's name inside Mortimer's interface. The rows are script-built, so the
+    // name is found by its text rather than by a fixed child index. That search runs once per
+    // opening, or once per game tick while it finds nothing, and the component is kept for the
+    // color to be reapplied from, since the interface's own handling of the row can write over it.
+    // The old color is put back whenever the offers or settings are read again; the rows are built
+    // fresh each time it opens.
     @Subscribe
     public void onClientTick(ClientTick event)
     {
@@ -1016,7 +978,7 @@ public class TaskChoiceOddsFeature implements Feature
         nameSearchFailed = false;
     }
 
-    /** The widget carrying a task's name, searched depth first, or null. */
+    // The widget carrying a task's name, searched depth first, or null.
     private Widget findNameWidget(Widget parent, String taskName)
     {
         Widget[][] groups = {
@@ -1051,11 +1013,9 @@ public class TaskChoiceOddsFeature implements Feature
         return null;
     }
 
-    /**
-     * Whether a widget's text names the given task. The interface wraps longer
-     * names across two lines and can word them differently from the table, so
-     * the comparison drops markup and lets either side be the longer one.
-     */
+    // Whether a widget's text names the given task. The interface wraps longer names across two
+    // lines and can word them differently from the table, so the comparison drops markup and lets
+    // either side be the longer one.
     private static boolean matchesTaskName(String text, String taskName)
     {
         String shown = withoutMarkup(text);
@@ -1064,7 +1024,7 @@ public class TaskChoiceOddsFeature implements Feature
             && (shown.startsWith(task) || task.startsWith(shown));
     }
 
-    /** Text with markup, spacing and case stripped, for comparison. */
+    // Text with markup, spacing and case stripped, for comparison.
     private static String withoutMarkup(String text)
     {
         if (text == null)

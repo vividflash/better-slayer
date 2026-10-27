@@ -55,24 +55,22 @@ import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.ui.overlay.OverlayManager;
 import net.runelite.client.util.ColorUtil;
 
-/**
- * Recommends which slayer master to take the next task from, based on
- * "every Xth task -> master Y" rules (highest matching interval wins, else
- * the default master). Highlights nearby masters accordingly, shows a point
- * projection overlay, posts a chat reminder on milestone tasks, and can
- * optionally consume the Assignment option on the wrong masters, or on
- * milestone tasks remove it from their menus entirely.
- *
- * Task streak and points come from server-synced varbits.
- */
+// Recommends which slayer master to take the next task from, based on "every Xth task -> master Y"
+// rules (highest matching interval wins, else the default master). Highlights nearby masters
+// accordingly, shows a point projection overlay, posts a chat reminder on milestone tasks, and can
+// optionally consume the Assignment option on the wrong masters, or on milestone tasks remove it
+// from their menus entirely.
+//
+// Task streak and points come from server-synced varbits.
 @Slf4j
 @Singleton
 public class MasterRulesFeature implements Feature
 {
-    /** Green for the milestone reminder, apart from the red task-complete lines and legible on either chatbox background. */
+    // Green for the milestone reminder, apart from the red task-complete lines and legible on
+    // either chatbox background.
     private static final Color REMINDER_MESSAGE_COLOR = new Color(0x00A000);
 
-    /** Bright red for the blocked-click message. */
+    // Bright red for the blocked-click message.
     private static final Color BLOCKED_MESSAGE_COLOR = new Color(0xEF1020);
 
     @Inject
@@ -99,16 +97,14 @@ public class MasterRulesFeature implements Feature
     private final Map<NPC, SlayerMaster> nearbyMasters = new LinkedHashMap<>();
     private final Map<NPC, SlayerMaster> nearbyMastersView = Collections.unmodifiableMap(nearbyMasters);
     private int lastAnnouncedTaskNumber = -1;
-    /** The master whose Assignment entry the last menu sort removed, so a hover logs once. */
+    // The master whose Assignment entry the last menu sort removed, so a hover logs once.
     private SlayerMaster lastMenuRemovedMaster;
-    /** Volatile because startUp and shutDown run off the client thread. */
+    // Volatile because startUp and shutDown run off the client thread.
     private volatile boolean running;
 
-    /**
-     * Set by every input the cached values depend on (the slayer varbits and
-     * varp, a config change, a game state change); the next read rebuilds
-     * them. Volatile because config changes arrive off the client thread.
-     */
+    // Set by every input the cached values depend on (the slayer varbits and varp, a config change,
+    // a game state change); the next read rebuilds them. Volatile because config changes arrive off
+    // the client thread.
     private volatile boolean stale = true;
     private Recommendation recommendation;
     private int nextTaskNumber;
@@ -116,10 +112,8 @@ public class MasterRulesFeature implements Feature
     private int currentPoints;
     private int mortimerTasksCompleted;
 
-    /**
-     * The recommended master plus whether it came from a rule (vs the default).
-     * The master is null when no rule matches and the default is None.
-     */
+    // The recommended master plus whether it came from a rule (vs the default). The master is null
+    // when no rule matches and the default is None.
     public static class Recommendation
     {
         public final SlayerMaster master;
@@ -131,11 +125,8 @@ public class MasterRulesFeature implements Feature
             this.fromRule = fromRule;
         }
 
-        /**
-         * True for a master other than the recommended one. On a rule task
-         * separate-streak masters are exempt, their tasks can't cost a
-         * normal-streak milestone.
-         */
+        // True for a master other than the recommended one. On a rule task separate-streak masters
+        // are exempt, their tasks can't cost a normal-streak milestone.
         public boolean isWrong(SlayerMaster other)
         {
             return master != null && other != master && !(fromRule && other.hasSeparateStreak());
@@ -196,11 +187,8 @@ public class MasterRulesFeature implements Feature
         });
     }
 
-    /**
-     * Picks up masters that spawned before startUp registered the feature.
-     * NPCs stay in the client after logout, so the scene is only read while
-     * logged in.
-     */
+    // Picks up masters that spawned before startUp registered the feature. NPCs stay in the client
+    // after logout, so the scene is only read while logged in.
     private void trackSceneMasters()
     {
         if (!running || client.getGameState() != GameState.LOGGED_IN)
@@ -256,10 +244,8 @@ public class MasterRulesFeature implements Feature
         return projectedGain;
     }
 
-    /**
-     * The flag is cleared before the inputs are read, so a change that lands
-     * during the rebuild marks the result stale again.
-     */
+    // The flag is cleared before the inputs are read, so a change that lands during the rebuild
+    // marks the result stale again.
     private void refreshIfStale()
     {
         if (!stale)
@@ -300,10 +286,8 @@ public class MasterRulesFeature implements Feature
         return new Recommendation(best, bestInterval > 0);
     }
 
-    /**
-     * The spinner range binds the config panel, not a stored value, so an
-     * interval is clamped before it is used as a divisor.
-     */
+    // The spinner range binds the config panel, not a stored value, so an interval is clamped
+    // before it is used as a divisor.
     private static int interval(int configured)
     {
         return Math.max(1, configured);

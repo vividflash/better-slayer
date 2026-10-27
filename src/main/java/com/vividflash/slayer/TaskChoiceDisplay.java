@@ -24,11 +24,8 @@
  */
 package com.vividflash.slayer;
 
-/**
- * Which of the two task choice surfaces are drawn. The panel is the floating
- * box listing every offered task's odds; the highlight is the best option's
- * name colored in Mortimer's own list.
- */
+// Which of the two task choice surfaces are drawn. The panel is the floating box listing every
+// offered task's odds; the highlight is the best option's name colored in Mortimer's own list.
 public enum TaskChoiceDisplay
 {
     OFF,

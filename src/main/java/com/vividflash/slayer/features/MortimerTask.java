@@ -29,14 +29,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
-/**
- * Each task Mortimer assigns, keyed by the slayer task id his offer varbits
- * carry: the estimated kills per hour at the task's quickest usual method,
- * whether it is a multicombat task, the config entry where a player can change
- * the speed, and where the task is usually done, how to get there and the
- * method the kills per hour assume. Each speed is the default of its own config
- * entry.
- */
+// Each task Mortimer assigns, keyed by the slayer task id his offer varbits carry: the estimated
+// kills per hour at the task's quickest usual method, whether it is a multicombat task, the config
+// entry where a player can change the speed, and where the task is usually done, how to get there
+// and the method the kills per hour assume. Each speed is the default of its own config entry.
 public enum MortimerTask
 {
     CRAWLING_HANDS(39, 1500, false, SlayerConfig::kphCrawlingHands,
@@ -55,7 +51,7 @@ public enum MortimerTask
         "Slayer Tower", "Slayer Ring", "Blowpipe"),
     BASILISKS(43, 200, false, SlayerConfig::kphBasilisks,
         "Fremennik Slayer Dungeon", "Slayer Ring", "Melee (Crush)"),
-    /** No task of its own: a basilisk task spent on basilisk knights, keyed apart from it. */
+    // No task of its own: a basilisk task spent on basilisk knights, keyed apart from it.
     BASILISK_KNIGHTS(-43, 92, false, SlayerConfig::kphBasiliskKnights,
         "Jormungand's Prison", "Fremennik Boots Tele, Isle of Stone", "Ranged"),
     BLOODVELD(48, 700, true, SlayerConfig::kphBloodveld,
@@ -102,13 +98,11 @@ public enum MortimerTask
     HYDRAS(113, 100, false, SlayerConfig::kphHydras,
         "Karuulm Slayer Dungeon", "Fairy Ring CIR", "Cannon");
 
-    /** Used for a task this table has no entry for. */
+    // Used for a task this table has no entry for.
     static final int DEFAULT_KILLS_PER_HOUR = 300;
 
-    /**
-     * Long-run unique table rolls per hour with three choices, worked out from
-     * the speeds above at the default overhead by {@link TaskPickScorer#baseline}.
-     */
+    // Long-run unique table rolls per hour with three choices, worked out from the speeds above at
+    // the default overhead by TaskPickScorer.baseline.
     static final double BASELINE = 0.04587723422611158;
 
     private static final Map<Integer, MortimerTask> BY_ID = new HashMap<>();
@@ -122,13 +116,10 @@ public enum MortimerTask
     }
 
     final int id;
-    /** The bundled kills per hour, the default of the task's config entry. */
+    // The bundled kills per hour, the default of the task's config entry.
     public final int defaultKph;
-    /**
-     * One of the multicombat tasks, quick through burst and barrage spells, the
-     * venator bow or a cannon. Only these are taken over a shorter task when
-     * boosted.
-     */
+    // One of the multicombat tasks, quick through burst and barrage spells, the venator bow or a
+    // cannon. Only these are taken over a shorter task when boosted.
     final boolean fast;
     final ToIntFunction<SlayerConfig> configKph;
     final String area;
@@ -147,7 +138,7 @@ public enum MortimerTask
         this.method = method;
     }
 
-    /** The task with this id, or null when this table has none. */
+    // The task with this id, or null when this table has none.
     static MortimerTask forId(int taskId)
     {
         return BY_ID.get(taskId);
@@ -159,7 +150,7 @@ public enum MortimerTask
         return task != null && task.fast;
     }
 
-    /** A task's kills per hour as set in the config, which starts out at the bundled figure. */
+    // A task's kills per hour as set in the config, which starts out at the bundled figure.
     static int killsPerHour(int taskId, SlayerConfig config)
     {
         MortimerTask task = forId(taskId);

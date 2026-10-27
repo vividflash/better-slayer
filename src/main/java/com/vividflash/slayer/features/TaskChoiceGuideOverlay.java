@@ -40,18 +40,15 @@ import net.runelite.client.ui.overlay.components.ComponentConstants;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
-/**
- * Shows where each task Mortimer is offering is usually done, how to get
- * there and the method, while his choice interface is open, and the task
- * taken for a while after it closes.
- */
+// Shows where each task Mortimer is offering is usually done, how to get there and the method,
+// while his choice interface is open, and the task taken for a while after it closes.
 @Singleton
 public class TaskChoiceGuideOverlay extends OverlayPanel
 {
     private final SlayerConfig config;
     private final TaskChoiceOddsFeature feature;
 
-    /** The panel width, measured once for the rows and font it was worked out from. */
+    // The panel width, measured once for the rows and font it was worked out from.
     private List<TaskChoiceOddsFeature.Row> widthRows;
     private Font widthFont;
     private int width;
@@ -107,10 +104,8 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
         return super.render(graphics);
     }
 
-    /**
-     * Adds a task's three rows, under the title if they are the first; a task
-     * with no entry adds nothing.
-     */
+    // Adds a task's three rows, under the title if they are the first; a task with no entry adds
+    // nothing.
     private void addEntry(TaskChoiceOddsFeature.Choice choice, Color nameColor)
     {
         MortimerTask entry = MortimerTask.forId(choice.taskId);
@@ -139,9 +134,7 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             .build());
     }
 
-    /**
-     * The panel width that keeps every row of the given tasks on one line.
-     */
+    // The panel width that keeps every row of the given tasks on one line.
     private static int measure(FontMetrics metrics, List<TaskChoiceOddsFeature.Row> rows)
     {
         int width = ComponentConstants.STANDARD_WIDTH;

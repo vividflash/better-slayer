@@ -27,18 +27,15 @@ package com.vividflash.slayer.features;
 import com.vividflash.slayer.TaskPickMode;
 import java.util.List;
 
-/**
- * Ranks Mortimer's offered tasks for a {@link TaskPickMode}. A task's worth is
- * the unique table rolls it is expected to give, its cost the hours it takes.
- * The baseline is the rolls per hour a player averages over many tasks, which
- * is what an hour spent on a weak task gives up.
- */
+// Ranks Mortimer's offered tasks for a TaskPickMode. A task's worth is the unique table rolls it is
+// expected to give, its cost the hours it takes. The baseline is the rolls per hour a player
+// averages over many tasks, which is what an hour spent on a weak task gives up.
 final class TaskPickScorer
 {
-    /** Chance of a superior per kill. */
+    // Chance of a superior per kill.
     static final double SUPERIOR_RATE = 1 / 200.0;
 
-    /** Completed tasks at which Mortimer offers a third choice. */
+    // Completed tasks at which Mortimer offers a third choice.
     static final int THIRD_CHOICE_TASKS = 50;
 
     private static final int BASELINE_ROUNDS = 50;
@@ -47,23 +44,20 @@ final class TaskPickScorer
     {
     }
 
-    /** Hours a task takes, the fixed overhead included. */
+    // Hours a task takes, the fixed overhead included.
     static double hours(double quantity, double killsPerHour, double overheadMinutes)
     {
         return overheadMinutes / 60.0 + quantity / killsPerHour;
     }
 
-    /** Unique table rolls a task is expected to give. */
+    // Unique table rolls a task is expected to give.
     static double rolls(double quantity, double uniqueTableChance)
     {
         return quantity * SUPERIOR_RATE * uniqueTableChance;
     }
 
-    /**
-     * Index of the pick among the choices, or -1 when none is resolvable. The
-     * speed-based modes need every choice's quantity and chance; a set missing
-     * either is ranked by chance alone.
-     */
+    // Index of the pick among the choices, or -1 when none is resolvable. The speed-based modes
+    // need every choice's quantity and chance; a set missing either is ranked by chance alone.
     static int pick(List<TaskChoiceOddsFeature.Choice> choices, TaskPickMode mode,
         int tasksCompleted, double overheadMinutes, double baseline)
     {
@@ -141,13 +135,10 @@ final class TaskPickScorer
         return best;
     }
 
-    /**
-     * Rolls per hour of a player who is offered three tasks, drawn by weight
-     * without repeats, and always takes the one that leaves them furthest
-     * ahead of this same rate. The rate is found by starting from zero and
-     * recomputing it from the picks it leads to until it settles. Modifiers are
-     * left out, so the tasks enter at their plain quantity and chance.
-     */
+    // Rolls per hour of a player who is offered three tasks, drawn by weight without repeats, and
+    // always takes the one that leaves them furthest ahead of this same rate. The rate is found by
+    // starting from zero and recomputing it from the picks it leads to until it settles. Modifiers
+    // are left out, so the tasks enter at their plain quantity and chance.
     static double baseline(double[] weights, double[] rolls, double[] hours)
     {
         int n = weights.length;

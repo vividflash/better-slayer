@@ -32,12 +32,9 @@ import net.runelite.api.NPC;
 import net.runelite.api.NPCComposition;
 import net.runelite.api.gameval.NpcID;
 
-/**
- * Slayer masters with their base reward points per completed task. The point
- * values feed the normal-streak recommendation math. They go unused for the
- * separate-streak masters, which no rule can target. A master's stand-in
- * (Aya, Achtryn, Steve, Kuradal) is matched by name as that master.
- */
+// Slayer masters with their base reward points per completed task. The point values feed the
+// normal-streak recommendation math. They go unused for the separate-streak masters, which no rule
+// can target. A master's stand-in (Aya, Achtryn, Steve, Kuradal) is matched by name as that master.
 public enum SlayerMaster
 {
     TURAEL("Turael", 0, "Aya"),
@@ -53,13 +50,10 @@ public enum SlayerMaster
 
     private static final SlayerMaster[] MASTERS = values();
 
-    /**
-     * Every NPC that offers an Assignment option, taken from the game cache,
-     * plus the multi-NPC parents that turn into one, so the gate holds whether
-     * the id is the parent or the transformed one. Quest, cutscene and
-     * follower copies of a master have no Assignment and are left out. Any
-     * other id skips the name lookup.
-     */
+    // Every NPC that offers an Assignment option, taken from the game cache, plus the multi-NPC
+    // parents that turn into one, so the gate holds whether the id is the parent or the transformed
+    // one. Quest, cutscene and follower copies of a master have no Assignment and are left out. Any
+    // other id skips the name lookup.
     private static final Set<Integer> NPC_IDS = Collections.unmodifiableSet(new HashSet<>(Arrays.asList(
         NpcID.SLAYER_MASTER_1, NpcID.SLAYER_MASTER_1_TUREAL, NpcID.SLAYER_MASTER_1_AYA,
         NpcID.SLAYER_MASTER_9, NpcID.SLAYER_MASTER_9_ACTIVE,
@@ -75,12 +69,9 @@ public enum SlayerMaster
 
     private final String displayName;
     private final int basePoints;
-    /**
-     * True for masters whose tasks run on their own streak (Krystilia's
-     * Wilderness streak, Mortimer's own task count); taking one never
-     * consumes a normal-streak milestone, so the wrong-master guards leave
-     * them alone on a rule task.
-     */
+    // True for masters whose tasks run on their own streak (Krystilia's Wilderness streak,
+    // Mortimer's own task count); taking one never consumes a normal-streak milestone, so the
+    // wrong-master guards leave them alone on a rule task.
     private final boolean separateStreak;
     private final String[] extraNpcNames;
 
@@ -107,20 +98,15 @@ public enum SlayerMaster
         return displayName;
     }
 
-    /**
-     * First word of the name, for the overlay's narrow column.
-     */
+    // First word of the name, for the overlay's narrow column.
     public String getShortName()
     {
         int space = displayName.indexOf(' ');
         return space < 0 ? displayName : displayName.substring(0, space);
     }
 
-    /**
-     * Base points per task, adjusted for the elite diary bonuses the player
-     * has ticked in config. Western Provinces takes Nieve from 12 to 15, and
-     * Kourend &amp; Kebos takes Konar from 18 to 20.
-     */
+    // Base points per task, adjusted for the elite diary bonuses the player has ticked in config.
+    // Western Provinces takes Nieve from 12 to 15, and Kourend & Kebos takes Konar from 18 to 20.
     public int getBasePoints(boolean eliteWesternDiary, boolean eliteKourendDiary)
     {
         if (this == NIEVE && eliteWesternDiary)
@@ -154,10 +140,8 @@ public enum SlayerMaster
         return false;
     }
 
-    /**
-     * Mortimer is matched by id, everyone else by name. An id outside the
-     * known master NPCs returns null without a name lookup.
-     */
+    // Mortimer is matched by id, everyone else by name. An id outside the known master NPCs returns
+    // null without a name lookup.
     public static SlayerMaster forNpc(NPC npc)
     {
         if (npc == null)
@@ -198,12 +182,9 @@ public enum SlayerMaster
         return null;
     }
 
-    /**
-     * Milestone multiplier for a given task number. Every 1000th task pays
-     * 50x base, 250th 35x, 100th 25x, 50th 15x and 10th 5x, with the highest
-     * applicable one winning, otherwise 1x. No points at all before the
-     * fifth task.
-     */
+    // Milestone multiplier for a given task number. Every 1000th task pays 50x base, 250th 35x,
+    // 100th 25x, 50th 15x and 10th 5x, with the highest applicable one winning, otherwise 1x. No
+    // points at all before the fifth task.
     public static int milestoneMultiplier(int taskNumber)
     {
         if (taskNumber % 1000 == 0)
