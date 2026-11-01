@@ -39,6 +39,21 @@ public interface SlayerConfig extends Config
     String GROUP = "vividflashslayer";
 
     @ConfigSection(
+        name = "Mortimer Task Choice",
+        description = "",
+        position = 10
+    )
+    String taskChoiceSection = "taskChoiceSection";
+
+    @ConfigSection(
+        name = "Mortimer Task Speeds",
+        description = "",
+        position = 20,
+        closedByDefault = true
+    )
+    String taskSpeedSection = "taskSpeedSection";
+
+    @ConfigSection(
         name = "Slayer Master Rules",
         description = "",
         position = 30,
@@ -52,21 +67,6 @@ public interface SlayerConfig extends Config
         position = 60
     )
     String taskSorterSection = "taskSorterSection";
-
-    @ConfigSection(
-        name = "Mortimer Task Choice",
-        description = "",
-        position = 10
-    )
-    String taskChoiceSection = "taskChoiceSection";
-
-    @ConfigSection(
-        name = "Mortimer Task Speeds",
-        description = "Kill speeds the pick is worked out from.",
-        position = 20,
-        closedByDefault = true
-    )
-    String taskSpeedSection = "taskSpeedSection";
 
     @ConfigItem(
         keyName = "taskChoiceOddsDisplay",
@@ -589,17 +589,6 @@ public interface SlayerConfig extends Config
     }
 
     @ConfigItem(
-        keyName = "nieve",
-        name = "Replace Steve with Nieve",
-        description = "Model, name, chathead, menu entries and dialogue.",
-        position = 50
-    )
-    default boolean nieve()
-    {
-        return true;
-    }
-
-    @ConfigItem(
         keyName = "masterRules",
         name = "Enable master rules",
         description = "",
@@ -809,18 +798,6 @@ public interface SlayerConfig extends Config
     }
 
     @ConfigItem(
-        keyName = "eliteWesternDiary",
-        name = "Elite Western diary",
-        description = "Nieve tasks pay 15 base points instead of 12.",
-        section = masterRulesSection,
-        position = 190
-    )
-    default boolean eliteWesternDiary()
-    {
-        return false;
-    }
-
-    @ConfigItem(
         keyName = "eliteKourendDiary",
         name = "Elite Kourend diary",
         description = "Konar tasks pay 20 base points instead of 18.",
@@ -828,6 +805,18 @@ public interface SlayerConfig extends Config
         position = 180
     )
     default boolean eliteKourendDiary()
+    {
+        return false;
+    }
+
+    @ConfigItem(
+        keyName = "eliteWesternDiary",
+        name = "Elite Western diary",
+        description = "Nieve tasks pay 15 base points instead of 12.",
+        section = masterRulesSection,
+        position = 190
+    )
+    default boolean eliteWesternDiary()
     {
         return false;
     }
@@ -847,7 +836,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "hideOverlayDuringMortimerTask",
         name = "Hide overlay during Mortimer task",
-        description = "",
+        description = "Task taken from his window this session.",
         section = masterRulesSection,
         position = 210
     )
@@ -919,7 +908,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "blockWrongMasters",
         name = "Block wrong masters",
-        description = "Consumes Assignment on masters other than the selected one.",
+        description = "Consumes Assignment on masters other than the selected one, Krystilia and Mortimer excepted on a rule task.",
         section = masterRulesSection,
         position = 270
     )
@@ -931,7 +920,7 @@ public interface SlayerConfig extends Config
     @ConfigItem(
         keyName = "hideWrongMastersOnMilestone",
         name = "Hide wrong masters on milestone",
-        description = "Removes Assignment from the other masters while a rule matches.",
+        description = "Removes Assignment from the other masters while a rule matches, except Krystilia and Mortimer.",
         section = masterRulesSection,
         position = 280
     )
@@ -947,6 +936,17 @@ public interface SlayerConfig extends Config
         position = 40
     )
     default boolean showTaskArea()
+    {
+        return true;
+    }
+
+    @ConfigItem(
+        keyName = "nieve",
+        name = "Replace Steve with Nieve",
+        description = "Model, name, chathead, menu entries and dialogue.",
+        position = 50
+    )
+    default boolean nieve()
     {
         return true;
     }

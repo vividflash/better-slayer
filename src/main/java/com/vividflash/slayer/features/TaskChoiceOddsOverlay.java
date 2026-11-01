@@ -34,6 +34,8 @@ import java.awt.Graphics2D;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -42,21 +44,19 @@ import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 import net.runelite.client.util.Text;
 
-/**
- * Shows the estimated odds of the configured superior drop for each task
- * Mortimer is offering and the time each is expected to take, while his
- * choice interface is open, and marks the configured mode's pick.
- */
+// Shows the estimated odds of the configured superior drop for each task Mortimer is offering and
+// the time each is expected to take, while his choice interface is open, and marks the configured
+// mode's pick.
+@Slf4j
 @Singleton
 public class TaskChoiceOddsOverlay extends OverlayPanel
 {
+    private final Client client;
     private final SlayerConfig config;
     private final TaskChoiceOddsFeature feature;
 
-    /**
-     * The panel texts and width, built once for the rows, odds mode, overhead
-     * and font they were worked out from, and again when any of those changes.
-     */
+    // The panel texts and width, built once for the rows, odds mode, overhead and font they were
+    // worked out from, and again when any of those changes.
     private List<TaskChoiceOddsFeature.Row> textRows;
     private UniqueOddsMode textMode;
     private int textOverhead;
@@ -66,14 +66,13 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
     private int width;
 
     @Inject
-    TaskChoiceOddsOverlay(SlayerConfig config, TaskChoiceOddsFeature feature)
+    TaskChoiceOddsOverlay(Client client, SlayerConfig config, TaskChoiceOddsFeature feature)
     {
+        this.client = client;
         this.config = config;
         this.feature = feature;
         setPosition(OverlayPosition.TOP_LEFT);
-        // The panel is only ever drawn while Mortimer's interface is open, and
-        // that interface covers the viewport in fixed mode, so the default
-        // under-widgets layer would hide it for its whole visible life.
+        // His interface covers the viewport in fixed mode, so the panel has to sit above it.
         setLayer(OverlayLayer.ABOVE_WIDGETS);
     }
 
@@ -98,6 +97,11 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
             textMode = mode;
             textOverhead = overhead;
             textFont = metrics.getFont();
+            if (log.isDebugEnabled())
+            {
+                log.debug("[panel] odds panel laid out, rows={} mode={} width={} resized={} stretched={}",
+                    rows.size(), mode, width, client.isResized(), client.isStretchedEnabled());
+            }
         }
 
         panelComponent.getChildren().add(TitleComponent.builder()
@@ -119,11 +123,8 @@ public class TaskChoiceOddsOverlay extends OverlayPanel
         return super.render(graphics);
     }
 
-    /**
-     * Works out the title, each row's odds text and the panel width that
-     * keeps every row on one line, since a row would wrap at the standard
-     * width.
-     */
+    // Works out the title, each row's odds text and the panel width that keeps every row on one
+    // line, since a row would wrap at the standard width.
     private void buildTexts(FontMetrics metrics, List<TaskChoiceOddsFeature.Row> rows, UniqueOddsMode mode)
     {
         // The dropdown says "Slayer Unique Roll"; next to his interface the "Slayer" is redundant.

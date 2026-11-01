@@ -24,12 +24,9 @@
  */
 package com.vividflash.slayer;
 
-/**
- * The masters offered in the Master Rules dropdowns. Only masters whose tasks
- * advance the normal streak belong here. A rule targets "your Nth
- * normal-streak task", which a separate-streak master (Krystilia, Mortimer)
- * can never hand out.
- */
+// The masters offered in the Master Rules dropdowns. Only masters whose tasks advance the normal
+// streak belong here. A rule targets "your Nth normal-streak task", which a separate-streak master
+// (Krystilia, Mortimer) can never hand out.
 public enum RuleMaster
 {
     TURAEL(SlayerMaster.TURAEL),

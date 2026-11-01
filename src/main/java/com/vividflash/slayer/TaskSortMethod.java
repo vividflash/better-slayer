@@ -26,7 +26,8 @@ package com.vividflash.slayer;
 
 public enum TaskSortMethod
 {
-    /** Sort by the assignment odds shown in the list (falls back to alphabetical when none is displayed). */
+    // Sort by the assignment odds shown in the list (falls back to alphabetical when none is
+    // displayed).
     WEIGHT,
     ALPHABETICAL;
 }

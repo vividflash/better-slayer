@@ -33,6 +33,8 @@ import java.awt.Graphics2D;
 import java.util.List;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
 import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
@@ -40,25 +42,25 @@ import net.runelite.client.ui.overlay.components.ComponentConstants;
 import net.runelite.client.ui.overlay.components.LineComponent;
 import net.runelite.client.ui.overlay.components.TitleComponent;
 
-/**
- * Shows where each task Mortimer is offering is usually done, how to get
- * there and the method, while his choice interface is open, and the task
- * taken for a while after it closes.
- */
+// Shows where each task Mortimer is offering is usually done, how to get there and the method,
+// while his choice interface is open, and the task taken for a while after it closes.
+@Slf4j
 @Singleton
 public class TaskChoiceGuideOverlay extends OverlayPanel
 {
+    private final Client client;
     private final SlayerConfig config;
     private final TaskChoiceOddsFeature feature;
 
-    /** The panel width, measured once for the rows and font it was worked out from. */
+    // The panel width, measured once for the rows and font it was worked out from.
     private List<TaskChoiceOddsFeature.Row> widthRows;
     private Font widthFont;
     private int width;
 
     @Inject
-    TaskChoiceGuideOverlay(SlayerConfig config, TaskChoiceOddsFeature feature)
+    TaskChoiceGuideOverlay(Client client, SlayerConfig config, TaskChoiceOddsFeature feature)
     {
+        this.client = client;
         this.config = config;
         this.feature = feature;
         setPosition(OverlayPosition.TOP_LEFT);
@@ -82,7 +84,6 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             return null;
         }
 
-        // With his window closed, the task just taken stays up for a while.
         boolean open = feature.isChoiceShown() && !feature.getChoices().isEmpty();
 
         List<TaskChoiceOddsFeature.Row> rows = open ? feature.getOfferRows() : feature.getTakenRows();
@@ -102,15 +103,18 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             width = measure(metrics, rows);
             widthRows = rows;
             widthFont = metrics.getFont();
+            if (log.isDebugEnabled())
+            {
+                log.debug("[panel] areas panel laid out, open={} rows={} width={} resized={} stretched={}",
+                    open, rows.size(), width, client.isResized(), client.isStretchedEnabled());
+            }
         }
         panelComponent.setPreferredSize(new Dimension(width, 0));
         return super.render(graphics);
     }
 
-    /**
-     * Adds a task's three rows, under the title if they are the first; a task
-     * with no entry adds nothing.
-     */
+    // Adds a task's three rows, under the title if they are the first; a task with no entry adds
+    // nothing.
     private void addEntry(TaskChoiceOddsFeature.Choice choice, Color nameColor)
     {
         MortimerTask entry = MortimerTask.forId(choice.taskId);
@@ -139,9 +143,7 @@ public class TaskChoiceGuideOverlay extends OverlayPanel
             .build());
     }
 
-    /**
-     * The panel width that keeps every row of the given tasks on one line.
-     */
+    // The panel width that keeps every row of the given tasks on one line.
     private static int measure(FontMetrics metrics, List<TaskChoiceOddsFeature.Row> rows)
     {
         int width = ComponentConstants.STANDARD_WIDTH;

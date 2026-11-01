@@ -38,10 +38,8 @@ import net.runelite.client.ui.overlay.OverlayLayer;
 import net.runelite.client.ui.overlay.OverlayPosition;
 import net.runelite.client.ui.overlay.OverlayUtil;
 
-/**
- * Outlines nearby slayer masters. The recommended one takes the "correct"
- * color and every other master the "wrong" color.
- */
+// Outlines nearby slayer masters. The recommended one takes the "correct" color and every other
+// master the "wrong" color.
 @Singleton
 public class MasterHighlightOverlay extends Overlay
 {
@@ -81,8 +79,6 @@ public class MasterHighlightOverlay extends Overlay
             boolean correct = entry.getValue() == recommended;
             if (!correct && !recommendation.isWrong(entry.getValue()))
             {
-                // On a rule task separate-streak masters are not "wrong".
-                // Their tasks can't cost a normal-streak milestone.
                 continue;
             }
             if (correct && !config.highlightCorrectMaster())
