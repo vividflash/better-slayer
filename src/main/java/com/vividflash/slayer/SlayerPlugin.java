@@ -60,7 +60,7 @@ public class SlayerPlugin extends Plugin
     // The release the one-time notice below belongs to, not the packaged version.
     private static final String VERSION = "1.4";
     private static final String UPDATE_MESSAGE =
-        "Patch 1.4; Mortimer shows where to go for each task, "
+        "Patch " + VERSION + "; Mortimer shows where to go for each task, "
             + "Konar tells you the task area in chat";
 
     // Dark red for the one-time notice, legible on either chatbox background.
