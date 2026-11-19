@@ -381,14 +381,19 @@ public class TaskSorterFeature implements Feature
     // along with the visual row at the same y.
     private void applySort(List<Row> rows, Map<Integer, Row> partners)
     {
-        // Clusters without any text (dividers, lone icons) are not task rows,
-        // so they keep their slots instead of joining the sort.
+        // Clusters without any text (status icons, dividers) are not task rows
+        // of their own. They are set aside here and attached after the checks.
+        List<Row> textless = new ArrayList<>();
         for (Row row : rows)
         {
             extractSortKeys(row);
+            if (row.widgets.stream()
+                .noneMatch(w -> w.getText() != null && !Text.removeTags(w.getText()).trim().isEmpty()))
+            {
+                textless.add(row);
+            }
         }
-        rows.removeIf(row -> row.widgets.stream()
-            .noneMatch(w -> w.getText() != null && !Text.removeTags(w.getText()).trim().isEmpty()));
+        rows.removeAll(textless);
 
         if (rows.size() < MIN_TASK_ROWS || !looksLikeTaskRows(rows) || !linesUpWith(rows, partners))
         {
@@ -402,6 +407,7 @@ public class TaskSorterFeature implements Feature
             }
             return;
         }
+        attachToRowsAbove(textless, rows);
 
         Comparator<Row> comparator;
         boolean anyWeighted = rows.stream().anyMatch(r -> r.weight >= 0);
@@ -506,6 +512,35 @@ public class TaskSorterFeature implements Feature
             }
         }
         return true;
+    }
+
+    // The status icon (tick, lock) sits a few pixels below its row's text, so it clusters on its
+    // own. A text-less cluster less than one row pitch below a task row joins that row and moves
+    // with it; one above the first row or a full pitch below every row keeps its slot.
+    private static void attachToRowsAbove(List<Row> textless, List<Row> rows)
+    {
+        if (textless.isEmpty())
+        {
+            return;
+        }
+        List<Integer> ys = sortedBaseYs(rows);
+        int pitch = ys.get(1) - ys.get(0);
+        for (Row loose : textless)
+        {
+            Row owner = null;
+            for (Row row : rows)
+            {
+                if (row.baseY < loose.baseY && loose.baseY - row.baseY < pitch
+                    && (owner == null || row.baseY > owner.baseY))
+                {
+                    owner = row;
+                }
+            }
+            if (owner != null)
+            {
+                owner.widgets.addAll(loose.widgets);
+            }
+        }
     }
 
     private static List<Integer> sortedBaseYs(List<Row> rows)

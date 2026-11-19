@@ -58,10 +58,9 @@ public class SlayerPlugin extends Plugin
     private static final String LAST_SEEN_VERSION_KEY = "lastSeenVersion";
 
     // The release the one-time notice below belongs to, not the packaged version.
-    private static final String VERSION = "1.4";
+    private static final String VERSION = "1.5";
     private static final String UPDATE_MESSAGE =
-        "Patch " + VERSION + "; Mortimer shows where to go for each task, "
-            + "Konar tells you the task area in chat";
+        "Better Slayer v" + VERSION + ": Fixed the Task Lock Icons in the Task Sorter";
 
     // Dark red for the one-time notice, legible on either chatbox background.
     private static final Color UPDATE_MESSAGE_COLOR = new Color(0x8B0000);
